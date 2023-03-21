@@ -15,3 +15,16 @@ This pipeline is intended to do variant calling on population genomic datasets w
 
 ### Snakemake
 The workflow is implemented using [Snakemake](https://snakemake.readthedocs.io/en/stable/). You can find an introduction about the underlying concepts on the [Snakemake GitHub page](https://snakemake.github.io/). In general, individual tasks are defined as rules, based on which Snakemake determines how to generate desired output files from available input files and generates and runs required software.
+
+##Setting up the workflow
+
+### Installing Snakemake
+
+### Installing GATK4
+
+### Installing other software
+
+### Installing the workflow
+
+
+
