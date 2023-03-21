@@ -7,3 +7,9 @@ This pipeline takes raw, paired-end Illumina reads of genomic datasets from plan
 In the following part I will describe how to set up, configure and run the workflow on HPC computing clusters, both in general and specifically for users of the czech national computing infrastructure [MetaCentrum](https://metavo.metacentrum.cz/).
 
 ## General idea
+This pipeline is intended to do variant calling on population genomic datasets with variable ploidy. To this there are four general steps:
+1. Indexing of reference genome
+2. Trimming of Illumina short reads, alignment and marking of PCR duplicates
+3. Variant calling on the individual and population level
+4. Filtering of variant calls
+
