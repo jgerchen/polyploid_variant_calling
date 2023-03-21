@@ -30,6 +30,7 @@ I installed Snakemake using a local Conda installation. First I dowloaded a mini
 ´´´
 source yourcondadir/bin/activate
 ´´´
+Then create a new conda environment using
 
 
 ### Installing GATK4
