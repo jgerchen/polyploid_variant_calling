@@ -23,7 +23,9 @@ The workflow needs a number of software packages. Depending on your cluster conf
 ### Installing Snakemake
 
 Snakemake may be installed via [conda or Pip](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html). Make sure to install a recent version of Snakemake, since Snakemake is under conti¨nuous development and some of the features used in this workflow may not be supported by older Snakemake versions.
-#### Metacentrum:
+#### On MetaCentrum:
+
+I installed Snakemake using a local Conda installation. First I dowloaded a minimal Conda installation (with the mamba package solver already preinstalled) [here](https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh). I followed the installation instructions and installed it in my home directory. To the last question, if conda should be activated by default I said no. 
 
 ### Installing GATK4
 
