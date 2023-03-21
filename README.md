@@ -18,7 +18,12 @@ The workflow is implemented using [Snakemake](https://snakemake.readthedocs.io/e
 
 ## Setting up the workflow
 
+The workflow needs a number of software packages. Depending on your cluster configuration, these may be installed in different ways (either by hand, via conda or by loading preconfigured modules for your cluster) and you can adjust the paths and commands for each of the packages individually.
+
 ### Installing Snakemake
+
+Snakemake may be installed via [conda or Pip](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html). Make sure to install a recent version of Snakemake, since Snakemake is under conti¨nuous development and some of the features used in this workflow may not be supported by older Snakemake versions.
+#### Metacentrum:
 
 ### Installing GATK4
 
