@@ -5,3 +5,5 @@ This variant calling workflow is similar to the [Fastq-to-vcf pipeline](https://
 * use of [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow system
 
 In the following part I will describe how to set up, configure and run the workflow, both in general and specifically for the czech national computing infrastructure [MetaCentrum](https://metavo.metacentrum.cz/).  
+
+## General idea
