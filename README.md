@@ -29,7 +29,7 @@ I installed Snakemake using a local Conda installation. First I dowloaded a mini
 ```
 source yourcondadir/bin/activate
 ```
-Then create a new conda environment called "Snakemake" using
+Create a new conda environment called "Snakemake" using
 ```
 conda create --name Snakemake
 ```
@@ -37,13 +37,22 @@ This environment is activated using
 ```
 conda activate Snakemake
 ```
-Then install Snakemake using [mamba](https://github.com/mamba-org/mamba)
+Install Snakemake using [mamba](https://github.com/mamba-org/mamba)
 ```
 mamba install -c bioconda snakemake
 ```
-
+After this you can also directly activate the Snakemake environment using
+```
+source yourcondadir/bin/activate Snakemake
+```
 
 ### Installing GATK4
+
+There are different ways to install GATK4 via [Docker](https://gatk.broadinstitute.org/hc/en-us/articles/360035889991) or with the help of [Conda](https://gatk.broadinstitute.org/hc/en-us/articles/360035889851--How-to-Install-and-use-Conda-for-GATK4). Importantly, there are extensive Python dependencies and it appears that just installing the standard Conda package is insufficient to get a fully functional version of GATK4, but Conda can be used to help [installing the dependencies in combination with a local installation of GATK4](https://gatk.broadinstitute.org/hc/en-us/articles/360035889991).
+
+#### On MetaCentrum:
+
+
 
 ### Installing other software
 
