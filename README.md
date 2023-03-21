@@ -33,6 +33,14 @@ Then create a new conda environment called "Snakemake" using
 ```
 conda create --name Snakemake
 ```
+This environment is activated using
+```
+conda activate Snakemake
+```
+Then install Snakemake using [mamba](https://github.com/mamba-org/mamba)
+```
+mamba install -c bioconda snakemake
+```
 
 
 ### Installing GATK4
