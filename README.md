@@ -4,6 +4,6 @@ This pipeline takes raw, paired-end Illumina reads of genomic datasets from plan
 * [GATK4](https://www.broadinstitute.org/news/broad-institute-releases-open-source-gatk4-software-genome-analysis-optimized-speed-and)
 * use of [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow system
 
-In the following part I will describe how to set up, configure and run the workflow, both in general and specifically for the czech national computing infrastructure [MetaCentrum](https://metavo.metacentrum.cz/).  
+In the following part I will describe how to set up, configure and run the workflow on HPC computing clusters, both in general and specifically for users of the czech national computing infrastructure [MetaCentrum](https://metavo.metacentrum.cz/).
 
 ## General idea
