@@ -45,6 +45,8 @@ After this you can also directly activate the Snakemake environment using
 ```
 source yourcondadir/bin/activate Snakemake
 ```
+In addition, Snakemake requires a [cluster profile](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles), which tells it how to submit and queue jobs. I developed a specific cluster profile for MetaCentrum. The profile and instructions for installation and use can be found [here](https://github.com/jgerchen/snakemake_metacentrum).
+
 
 ### Installing GATK4
 
