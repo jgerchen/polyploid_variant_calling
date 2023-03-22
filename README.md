@@ -101,7 +101,11 @@ git clone https://github.com/jgerchen/polyploid_variant_calling
 
 #### Configuration
 
-General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html) is implemented using yaml files. There is one yaml file in the config directory for each of the four parts of the workflow, in which standard settings are put. Importantly, you have to provide a custom yaml file for your specific Snakemake run in which you set a number of paths to directories and other config files. You can also add any of the settings from the default config file to this file to override them.
+General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html) is implemented using yaml files. There is one yaml file in the config directory for each of the four parts of the workflow, in which default parameters for some options are put. Importantly, you have to provide a custom yaml file for your specific Snakemake run in which you set a number of paths to directories and other config files, for which there are no default settings. You can also add any of the settings from the default config file to this file to override them.
+
+Your custom yaml file has to contain the following entries:
+
+In addition, there is one script for each of the four parts of the workflow which contain commands, which are run every time before any of the rules in this part of the workflow is run. The idea is that you can load any software modules or conda packages in the way that is appropriate for your computing environment.
 
 
 
