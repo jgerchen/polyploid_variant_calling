@@ -114,7 +114,7 @@ If your computing environment does not require to run these scripts you can deac
 
 Here I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths: 
 
-
+## Running the pipeline
 
 
 
