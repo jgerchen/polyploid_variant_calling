@@ -105,9 +105,14 @@ General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/
 
 Your custom yaml file has to contain the following entries:
 
-In addition, there is one script for each of the four parts of the workflow which contain commands, which are run every time before any of the rules in this part of the workflow is run. The idea is that you can load any software modules or conda packages in the way that is appropriate for your computing environment.
+#### Pre-run scripts
 
+In addition, there is one script for each of the four parts of the workflow which contain commands, which are run every time before any of the rules in this part of the workflow is run. The idea is that you can load any software modules or conda packages in the way that is appropriate for your computing environment. You can also set a different set of pre-run scripts for your individual Snakemake runs by changing the folder with the ? option.
+If your computing environment does not require to run these scripts you can deactivate this functionality using the ? option.
 
+#### On MetaCentrum:
+
+Here I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths: 
 
 
 
