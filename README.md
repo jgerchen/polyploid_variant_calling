@@ -69,7 +69,7 @@ I can activate the Conda environment using
 ```
 source yourcondadir/bin/activate gatk4
 ```
-It can also be convenient to install the Java runtime environment into this conda dir by using
+It can also be convenient to install the Java runtime environment into this conda environment by using
 ```
 mamba install -c conda-forge openjdk
 ```
