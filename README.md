@@ -101,5 +101,12 @@ git clone https://github.com/jgerchen/polyploid_variant_calling
 
 #### Configuration
 
+General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html) is implemented using yaml files.  
+
+
+
+
+
+
 
 
