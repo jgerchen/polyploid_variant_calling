@@ -101,7 +101,8 @@ git clone https://github.com/jgerchen/polyploid_variant_calling
 
 #### Configuration
 
-General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html) is implemented using yaml files.  
+General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html) is implemented using yaml files. There is one yaml file in the config directory for each of the four parts of the workflow, in which standard settings are put. Importantly, you have to provide a custom yaml file for your specific Snakemake run in which you set a number of paths to directories and other config files. You can also add any of the settings from the default config file to this file to override them.
+
 
 
 
