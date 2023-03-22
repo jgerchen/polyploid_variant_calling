@@ -93,5 +93,13 @@ This workflow uses a bunch of other software packages, which are available as mo
 
 ### Installing the workflow
 
+You can clone the workflow to your local directory using
+
+```
+git clone https://github.com/jgerchen/polyploid_variant_calling/edit/main/README.md
+```
+
+#### Configuration
+
 
 
