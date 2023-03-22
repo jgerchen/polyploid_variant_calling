@@ -52,6 +52,26 @@ There are different ways to install GATK4 via [Docker](https://gatk.broadinstitu
 
 #### On MetaCentrum:
 
+On metacentrum, I follow the [instructions for installing GATK4 with the help of Conda](https://gatk.broadinstitute.org/hc/en-us/articles/360035889851--How-to-Install-and-use-Conda-for-GATK4).
+First I download the [latest GATK4 package](https://github.com/broadinstitute/gatk/releases), extract it somewhere in my homedirectory and enter the unzipped directory
+```
+unzip gatk-4.4.0.0.zip
+cd gatk-4.4.0.0
+```
+I activate Conda (see above) and create a new Conda environment, in which Python dependencies are installed
+```
+source yourcondadir/bin/activate
+conda env create -n gatk4 -f gatkcondaenv.yml
+```
+I can activate the Conda environment using
+```
+source yourcondadir/bin/activate gatk4
+```
+It can also be convenient to install the Java runtime environment into this conda dir by using
+```
+mamba install -c conda-forge openjdk
+```
+With the activated conda environment, GATK4 can be run using the "gatk" wrapper script in the extracted GATK4 folder
 
 
 ### Installing other software
