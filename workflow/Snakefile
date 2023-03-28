@@ -1,0 +1,5 @@
+include: "rules/0_indexreference.smk"
+include: "rules/1_mapreads.smk"
+include: "rules/2_callvars.smk"
+include: "rules/3_genotypeGVCF.smk"
+include: "rules/4_filter_gatk.smk"
