@@ -1,0 +1,5 @@
+temp_dir: "$SCRATCHDIR"
+hetmask: "None"
+depthmask_n: 10
+gen_min_depth: 8
+gen_max_missing: 0.5

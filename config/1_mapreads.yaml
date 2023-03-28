@@ -1,0 +1,3 @@
+temp_dir: "$SCRATCHDIR"
+load_cluster_code: 1
+run_fastqc: True

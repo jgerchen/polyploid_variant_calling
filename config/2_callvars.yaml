@@ -1,0 +1,3 @@
+temp_dir: "$SCRATCHDIR"
+hapcaller_minbaseq: 20
+hapcaller_minmapq: 20 
