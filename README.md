@@ -110,7 +110,7 @@ git clone https://github.com/jgerchen/polyploid_variant_calling
 
 General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html) is implemented using yaml files. There is one yaml file in the config directory for each of the four parts of the workflow, in which default parameters for some options are put. Importantly, you have to provide an additional custom yaml file for your specific Snakemake run in which you set a number of paths to directories and other config files, for which there are no default settings. You can also add any of the settings from the default config file to this file to override them.
 The individual parameters that have to be set are:
-## Input files
+##### Input files
 * **input_fasta** Your reference genome in fasta format
 * **sample_list** tab-separated file containing information about individual samples format is as follows:
  
