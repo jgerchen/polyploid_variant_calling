@@ -117,7 +117,8 @@ The individual parameters that have to be set are:
 sample_name<TAB>file_name<TAB>adaptor_file
 ```
 Here sample_name will determine the naming of other downstream files for each sample (wildcard {sample}) and file name is used to identify individual fastq files containing reads for this sample (file_name must be contained in the name of each fastq file). Finally, adaptor_file determines the adaptor file used for trimmomatic for this sample.
-
+* **sample_ploidies** tab-separated file containing sample name and ploidy of individual
+* **sub_intervals** 
 
 Your custom yaml file has to contain the following entries:
 
