@@ -11,7 +11,7 @@ This pipeline is intended to do variant calling on population genomic datasets w
 1. Indexing of reference genome
 2. Trimming of Illumina short reads, alignment and marking of PCR duplicates
 3. Variant calling on the individual and population level
-4. Filtering of variant calls
+4. Filtering of variant calls (either using GATK/PicardTools or Bcftools)
 
 ### Snakemake
 The workflow is implemented using [Snakemake](https://snakemake.readthedocs.io/en/stable/). You can find an introduction about the underlying concepts on the [Snakemake GitHub page](https://snakemake.github.io/). In general, individual tasks are defined as rules, based on which Snakemake determines how to generate desired output files from available input files and generates and runs required software.
@@ -88,9 +88,11 @@ This workflow uses a bunch of other software packages, which are available as mo
 * BWA
 * PicardTools
 3. Variant calling on the individual and population level
+* GATK4
+* Bedtools
 4. Filtering of variant calls
-
-
+* GATK4 or Bcftools
+* Bedtools
 ### Installing the workflow
 
 You can clone the workflow to your local directory using
@@ -103,6 +105,7 @@ git clone https://github.com/jgerchen/polyploid_variant_calling
 
 General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html) is implemented using yaml files. There is one yaml file in the config directory for each of the four parts of the workflow, in which default parameters for some options are put. Importantly, you have to provide an additional custom yaml file for your specific Snakemake run in which you set a number of paths to directories and other config files, for which there are no default settings. You can also add any of the settings from the default config file to this file to override them.
 The individual parameters that have to be set are:
+
 
 
 Your custom yaml file has to contain the following entries:
