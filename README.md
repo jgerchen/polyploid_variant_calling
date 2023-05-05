@@ -79,19 +79,24 @@ With the activated conda environment, GATK4 can be run using the "gatk" wrapper 
 
 This workflow uses a bunch of other software packages, which are available as modules on MetaCentrum. Specifically, for each part of the workflow they are:
 
-1. Indexing of reference genome
+0. Indexing of reference genome
 * BWA
 * Samtools
-2. Trimming of Illumina short reads, alignment and marking of PCR duplicates
+* PicardTools
+* htslib
+1. Trimming of Illumina short reads, alignment and marking of PCR duplicates
 * Trimmomatic
 * Samtools
 * BWA
 * PicardTools
-3. Variant calling on the individual and population level
+* fastQC (optional)
+2. Variant calling on the individual level
 * GATK4
+3. joint genotyping
 * Bedtools
+* GATK4
 4. Filtering of variant calls
-* GATK4 or Bcftools
+* GATK4 and PicardTools or Bcftools
 * Bedtools
 ### Installing the workflow
 
