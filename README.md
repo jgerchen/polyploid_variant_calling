@@ -149,7 +149,7 @@ If your computing environment does not require to run these scripts you can deac
 Here I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths: 
 
 ## Running the pipeline
-
+In priciple, you have to run Snakemake in the workflow directory (where the main Snakefile is located), giving the desired output file(s) as a parameter. Snakemake will then test if the output can be genrated given the rules and input files. If true, it will run the rules and generate output files. 
 
 
 
