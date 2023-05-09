@@ -126,10 +126,19 @@ Here sample_name will determine the naming of other downstream files for each sa
 
 * **fastq_dir** Directory in which raw illumina data in fastq.gz format are located. The data can be spread across multiple sub-directories and the script will find files with matching file names defined in **sample_list** recursively
 * **adapter_dir** directory in which sequencing adapters (used by trimmomatic) defined in **sample_list** are located
-#### Output directories (will be automatically created by snakemake if non-existent)
-
-
-
+##### Output directories (will be automatically created by snakemake if non-existent)
+* **fasta_dir** Reference genome will be copied here and associated indexes will be located here
+* **fastqc_dir** raw fastq files will be copies here and renamed according to **sample**
+* **fastq_trimmed_dir** Fastq files after trimming will be copied here
+* **bam_dir** bam files will be copied here
+* **gvcf_dir** gvcf files of individual samples (created by GATK HaplotypeCaller) will be put here
+* **vcf_dir** unfiltered, population-level vcf files will be put here
+* **vcf_filtered** filtered vcf files will be put here
+* **log_dir** log files (direct output of stdout and/or stderr or rules and shell scripts) will be put here
+* **cluster_code_dir** scripts that will be run at the beginning of each rule (separate scripts for each step of the pipeline). This is used to load software modules or snakemake environments on metacentrum, functionality can be deactivated by setting load_cluster_code to 0
+* **depthmask_dir** location where the [depthmask script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask) will put additional output files
+* **report_dir** location where additional plots and stats are saved, which can later be used to generate a [Snakemake report](https://snakemake.readthedocs.io/en/stable/snakefiles/reporting.html), although I did not implement extensive plotting functions for all of the rules yet
+* 
 #### Pre-run scripts
 
 In addition, there is one script for each of the four parts of the workflow which contain commands, which are run every time before any of the rules in this part of the workflow is run. The idea is that you can load any software modules or conda packages in the way that is appropriate for your computing environment. You can also set a different set of pre-run scripts for your individual Snakemake runs by changing the folder with the cluster_code_dir option.
