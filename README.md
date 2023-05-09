@@ -182,6 +182,9 @@ You can generate any intermediate files that are defined in the workflow. Likely
 ### 0_index_reference
 
 ### 1_mapreads
+* config["bam_dir"]/{species}_{sample}.merged.bam
+
+
 
 ### 2_callvars
 
