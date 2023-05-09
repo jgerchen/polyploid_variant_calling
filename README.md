@@ -188,5 +188,15 @@ You can generate any intermediate files that are defined in the workflow. Likely
 
 ### 4_filter
 
+## Still to implement
+
+While the workflow should be functional as it is now there are still several features that I want to implement or improve
+
+* Improved plotting functions either using Snakemake reports or via direct integration of [multiQC](https://multiqc.info/)
+* Better handling of crashed jobs, e.g. automated restart of jobs that run out of memory or walltime with increased resources
+* Implementation of [updog](https://dcgerard.github.io/updog/) for improved polyploid genotyping
+
+
+
 
 
