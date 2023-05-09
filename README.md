@@ -164,6 +164,7 @@ For this you need [graphviz](https://graphviz.org/) installed, on metacentrum yo
 ```
 module load graphviz          
 ```
+While it should be possible to run this workflow on any HPC computing platform, I designed some aspects of it with the architecture of MetaCentrum in mind. That means that currently for each job all input files are copied to a temporary directory (defined by the **temp_dir** option) and the results are copied back to the appropriate directory defined in the config file afterwards while all temporary files are deleted.
 
 ### Running it on MetaCentrum
 After you installed the  [Metacentrum cluster profile](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles), you can run snakemake using 
