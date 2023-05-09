@@ -119,6 +119,15 @@ sample_name<TAB>file_name<TAB>adaptor_file
 Here sample_name will determine the naming of other downstream files for each sample (wildcard {sample}) and file name is used to identify individual fastq files containing reads for this sample (file_name must be contained in the name of each fastq file). Finally, adaptor_file determines the adaptor file used for trimmomatic for this sample.
 * **sample_ploidies** tab-separated file containing sample name and ploidy of individual
 * **sub_intervals** defining genomic intervals over which GATK haplotypecaller and population level genotyping will be parallelized in a [scatter-gather](https://gatk.broadinstitute.org/hc/en-us/articles/360035532012-Parallelism-Multithreading-Scatter-Gather) fashion. Each line defines an interval, over which variant calling will run as a single job. The most straight-forward way to do this is to put the name of a single contig per line, each of which will then get their own job. However, you may also want to run multiple smaller contigs in one job. In this case you can put the location of a second file instead of the name of the contig. This second file should contain a list of all the smaller contigs, that should be run in a single job. 
+* **fourfold** BED file containing the location of fourfold-degenerate sites.
+* **depthmask** BED file containing the location of sites that should be filtered out due to excessive depth. If this file doesn't exist it will be generated using the make_depth_mask rule using a [custom python script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask)
+
+##### Pre-existing directories
+
+* **fastq_dir** Directory in which raw illumina data in fastq.gz format are located. The data can be spread across multiple sub-directories and the script will find files with matching file names defined in **sample_list** recursively
+* **adapter_dir** directory in which sequencing adapters (used by trimmomatic) defined in **sample_list** are located
+#### Output directories (will be automatically created by snakemake if non-existent)
+
 
 
 #### Pre-run scripts
