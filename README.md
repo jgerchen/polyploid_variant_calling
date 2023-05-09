@@ -154,7 +154,15 @@ In priciple, you have to run Snakemake in the workflow directory (where the main
 In general, it is useful to do a dry run, to test if the workflow (with your config file) can be resolved before you actually run it using
 
 ```
-snakemake output_file -n --configfile config.yaml 
+snakemake output_file -n --configfile config.yaml
+```
+You can also plot the [DAG]() of your workflow as a pdf without running the actual workflow
+```
+snakemake output_file --configfile config.yaml --dag | dot -Tpdf -Gsize="11,8│!" > dag.pdf           
+```
+For this you need [graphviz](https://graphviz.org/) installed, on metacentrum you can load it as a module using
+```
+module load graphviz          
 ```
 
 ### Running it on MetaCentrum
@@ -163,5 +171,22 @@ After you installed the  [Metacentrum cluster profile](https://snakemake.readthe
 snakemake  output_file --configfile config.yaml --profile snakemake_metacentrum -j 100
 ```
 This assumes that your cluster profile is located in $HOME/.config/snakemake/snakemake_metacentrum
+For longer workflows, you may want to run Snakemake itself on the [oven node](https://wiki.metacentrum.cz/wiki/Oven_node). You can do this by putting your Snakemake command in a jobscript and submit it using 
+```
+qsub jobscipt.sh -q oven
+```
+## Output files
+
+You can generate any intermediate files that are defined in the workflow. Likely the ones that are the most interesting are:
+### 0_index_reference
+
+### 1_mapreads
+
+### 2_callvars
+
+### 3_genotypeGVCF
+
+### 4_filter
+
 
 
