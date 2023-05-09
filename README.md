@@ -150,9 +150,18 @@ If your computing environment does not require to run these scripts you can deac
 Here I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths the paths to conda and gatk4 in 2_callvars.sh, 3_genotypeGVCF.sh and 4_filter_GATK.sh (if you want to use GATK for filtering).
 
 ## Running the pipeline
-In priciple, you have to run Snakemake in the workflow directory (where the main Snakefile is located), giving the desired output file(s) as a parameter. Snakemake will then test if the output can be genrated given the rules and input files. If true, it will run the rules and generate output files. For most downstreaam output files that you're most likely interested in generating, you'll have to set the {species} [wildcard](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#wildcards), which will then be automatically used for naming all upstream files.
-In general, it is useful to do a dry run, to test if the workflow can be resolved before you actually run it.
+In priciple, you have to run Snakemake in the workflow directory (where the main Snakefile is located), giving the desired output file(s) as a parameter. In addition, you'll have to provide your main config file using the --configfile parameter and you'll have to define the number of parallel jobs using the -j parameter. Snakemake will then test if the output can be genrated given the rules and input files. If true, it will run the rules and generate output files. For most downstreaam output files that you're most likely interested in generating, you'll have to set the {species} [wildcard](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#wildcards), which will then be automatically used for naming all upstream files.
+In general, it is useful to do a dry run, to test if the workflow (with your config file) can be resolved before you actually run it using
 
+```
+snakemake output_file -n --configfile config.yaml 
+```
 
+### Running it on MetaCentrum
+After you installed the  [Metacentrum cluster profile](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles), you can run snakemake using 
+```
+snakemake  output_file --configfile config.yaml --profile snakemake_metacentrum -j 100
+```
+This assumes that your cluster profile is located in $HOME/.config/snakemake/snakemake_metacentrum
 
 
