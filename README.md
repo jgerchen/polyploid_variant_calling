@@ -178,13 +178,10 @@ qsub jobscipt.sh -q oven
 ```
 ## Output files
 
-You can generate any intermediate files that are defined in the workflow. Likely the ones that are the most interesting are:
+You can generate any intermediate files that are defined in output directive of any rule in the workflow. Likely the ones that are the most interesting are:
 ### 0_index_reference
 
 ### 1_mapreads
-* config["bam_dir"]/{species}_{sample}.merged.bam
-
-
 
 ### 2_callvars
 
