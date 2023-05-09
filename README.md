@@ -156,7 +156,7 @@ In general, it is useful to do a dry run, to test if the workflow (with your con
 ```
 snakemake output_file -n --configfile config.yaml
 ```
-You can also plot the [DAG]() of your workflow as a pdf without running the actual workflow
+You can also plot the [DAG](https://snakemake.readthedocs.io/en/stable/tutorial/basics.html#step-4-indexing-read-alignments-and-visualizing-the-dag-of-jobs) of your workflow as a pdf without running the actual workflow
 ```
 snakemake output_file --configfile config.yaml --dag | dot -Tpdf -Gsize="11,8│!" > dag.pdf           
 ```
@@ -164,7 +164,7 @@ For this you need [graphviz](https://graphviz.org/) installed, on metacentrum yo
 ```
 module load graphviz          
 ```
-While it should be possible to run this workflow on any HPC computing platform, I designed some aspects of it with the architecture of MetaCentrum in mind. That means that currently for each job all input files are copied to a temporary directory (defined by the **temp_dir** option) and the results are copied back to the appropriate directory defined in the config file afterwards while all temporary files are deleted.
+While it should be possible to run this workflow on any HPC computing platform, I designed some aspects of it with the architecture of MetaCentrum in mind. That means that currently for each job all input files are copied to a temporary directory (defined by the **temp_dir** option, standard is the $SCRATCHDIR variable used to define the local filesystem of computing notes in MetaCentrum) and the results are copied back to the appropriate directory defined in the config file afterwards while all temporary files are deleted.
 
 ### Running it on MetaCentrum
 After you installed the  [Metacentrum cluster profile](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles), you can run snakemake using 
