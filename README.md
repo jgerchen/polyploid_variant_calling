@@ -121,7 +121,6 @@ Here sample_name will determine the naming of other downstream files for each sa
 * **sample_ploidies** tab-separated file containing sample name and ploidy of individual
 * **sub_intervals** defining genomic intervals over which GATK haplotypecaller and population level genotyping will be parallelized in a [scatter-gather](https://gatk.broadinstitute.org/hc/en-us/articles/360035532012-Parallelism-Multithreading-Scatter-Gather) fashion. Each line defines an interval, over which variant calling will run as a single job. The file is tab-seperated in two columns, the first line defines the name for output file for each interval, the second line is either the name of the contig in the fasta file or, if multiple contigs should be run in a single job, the location of a second file that contains a list of all the contigs, that should be run in a single job.
 * **fourfold** BED file containing the location of fourfold-degenerate sites.
-* **depthmask** BED file containing the location of sites that should be filtered out due to excessive depth. If this file doesn't exist it will be generated using the make_depth_mask rule using a [custom python script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask)
 
 ##### Pre-existing directories
 
@@ -137,7 +136,7 @@ Here sample_name will determine the naming of other downstream files for each sa
 * **vcf_filtered** filtered vcf files will be put here
 * **log_dir** log files (direct output of stdout and/or stderr or rules and shell scripts) will be put here
 * **cluster_code_dir** scripts that will be run at the beginning of each rule (separate scripts for each step of the pipeline). This is used to load software modules or snakemake environments on metacentrum, functionality can be deactivated by setting load_cluster_code to 0
-* **depthmask_dir** location where the [depthmask script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask) will put additional output files
+* **depthmask_dir** location where the [depthmask script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask) will put the deptmask bed and additional output files
 * **report_dir** location where additional plots and stats are saved, which can later be used to generate a [Snakemake report](https://snakemake.readthedocs.io/en/stable/snakefiles/reporting.html), although I did not implement extensive plotting functions for all of the rules yet
 
 #### Pre-run scripts
