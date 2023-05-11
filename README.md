@@ -173,7 +173,7 @@ snakemake  output_file --configfile config.yaml --profile snakemake_metacentrum 
 This assumes that your cluster profile is located in $HOME/.config/snakemake/snakemake_metacentrum
 For longer workflows, you may want to run Snakemake itself on the [oven node](https://wiki.metacentrum.cz/wiki/Oven_node). You can do this by putting your Snakemake command in a jobscript and submit it using 
 ```
-qsub jobscipt.sh -q oven
+qsub -q oven jobscipt.sh 
 ```
 ## Output files
 
