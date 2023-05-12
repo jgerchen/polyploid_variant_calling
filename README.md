@@ -179,7 +179,8 @@ qsub -q oven jobscript.sh
 
 You can generate any intermediate files that are defined in output directive of any rule in the workflow. Likely the ones that are the most interesting are:
 ### 0_index_reference
-
+* config[fasta_dir]/{species}.fasta
+* 
 ### 1_mapreads
 
 ### 2_callvars
