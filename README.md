@@ -173,7 +173,7 @@ snakemake  output_file --configfile config.yaml --profile snakemake_metacentrum 
 This assumes that your cluster profile is located in $HOME/.config/snakemake/snakemake_metacentrum and will submit up to 100 jobs in parallel.
 For longer workflows, you may want to run Snakemake itself on the [oven node](https://wiki.metacentrum.cz/wiki/Oven_node). You can do this by putting your Snakemake command in a [jobscript](https://wiki.metacentrum.cz/wiki/Beginners_guide#Run_batch_jobs) and submit it using 
 ```
-qsub -q oven jobscipt.sh 
+qsub -q oven jobscript.sh 
 ```
 ## Output files
 
