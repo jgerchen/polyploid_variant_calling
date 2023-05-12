@@ -84,7 +84,6 @@ This workflow uses a bunch of other software packages, which are available as mo
 * BWA
 * Samtools
 * PicardTools
-* htslib
 1. Trimming of Illumina short reads, alignment and marking of PCR duplicates
 * Trimmomatic
 * Samtools
