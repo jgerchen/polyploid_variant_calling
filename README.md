@@ -198,9 +198,13 @@ You can generate any intermediate files that are defined in output directive of 
 #### GATK
 * **config[vcf_dir]/{species}.merged.vcf.gz** Unfiltered VCF file for all samples with all intervals merged
 * **config[vcf_filtered]/{species}.bisel.vcf.gz** VCF file containing all biallelic SNPs (invariants, multi-allelic variants and INDELS and complex variants removed)
-* **config[vcf_filtered]/{species}.bifilt.vcf.gz** Biallelic SNPs filtered for GATK best practice values by default (or individual values defined in the config files), with filtered Variants marked annotated in the FILTER column of the VCF file 
-
-
+* **config[vcf_filtered]/{species}.bifilt.vcf.gz** Biallelic SNPs filtered for GATK best practice values by default (or individual values defined in the config files), with filtered Variants annotated in the FILTER column of the VCF file
+* **config[vcf_filtered]/{species}.bipassed.vcf.gz** Biallelic SNPs with SNPs marked as filtered in the previous step removed
+* **config[vcf_filtered]/{species}.novarsel.vcf.gz** VCF file containing invariant sites (bi- and multi-allelic variants and INDELS and complex variants removed)
+* **config[vcf_filtered]/{species}.novarfilt.vcf.gz** Invariant sites filtered based on the QUAL score (default 15, can be changed by the **invariantQUAL_less** option) annotated in the FILTER column of the VCF file
+* **config[vcf_filtered]/{species}.novarpass.vcf.gz** Invariants with sites filtered in the previous step removed
+* **config[vcf_filtered]/{species}.merged.vcf.gz** Filtered biallelic SNPs and Invariants merged into a single VCF
+* 
 
 
 
