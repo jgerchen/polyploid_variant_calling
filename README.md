@@ -204,7 +204,7 @@ You can generate any intermediate files that are defined in output directive of 
 * **config[vcf_filtered]/{species}.novarfilt.vcf.gz** Invariant sites filtered based on the QUAL score (default 15, can be changed by the **invariantQUAL_less** option) annotated in the FILTER column of the VCF file
 * **config[vcf_filtered]/{species}.novarpass.vcf.gz** Invariants with sites filtered in the previous step removed
 * **config[vcf_filtered]/{species}.merged.vcf.gz** Filtered biallelic SNPs and Invariants merged into a single VCF
-* **config[vcf_filtered]+"/{species}.merged.filtered.vcf.gz** Biallelic SNPs and variants with additional exclusion of regions with excessive depth (defined in {species}\_dm.bed) and optional additonal bed file defining regions with excess heterozygosity (can be set using the **hetmask** to a different value than the standard value "None")
+* **config[vcf_filtered]/{species}.merged.filtered.vcf.gz** Biallelic SNPs and variants with additional exclusion of regions with excessive depth (defined in {species}\_dm.bed) and optional additonal bed file defining regions with excess heterozygosity (can be set using the **hetmask** option to a different value than the standard value "None")
 * **config[vcf_filtered]/{species}.bipassed.dp.vcf.gz** Filtered bi-allic SNPs with genotypes marked that don't pass the minimum depth threshold (default 8, can be set using the **gen_min_depth** option)
 * **config[vcf_filtered]/{species}.bipassed.dp.nc.vcf.gz** VCF file with SNPs filtered in the previous step set to missing
 * **config[vcf_filtered]/{species}.bipassed.dp.nc.m.vcf.gz** VCF file with sites removed, which have a greater proportion of missing data than a pre-defined threshold (default 0.5, can be set using the **gen_max_missing** option)
