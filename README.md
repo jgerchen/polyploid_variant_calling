@@ -128,7 +128,7 @@ Here sample_name will determine the naming of other downstream files for each sa
 * **adapter_dir** directory in which sequencing adapters (used by trimmomatic) defined in **sample_list** are located
 ##### Output directories (will be automatically created by snakemake if non-existent)
 * **fasta_dir** Reference genome will be copied here and associated indexes will be located here
-* **fastqc_dir** raw fastq files will be copies here and renamed according to **sample**
+* **fastqc_dir** results of fastqc analysis of reads (before and after trimming) will be put here. FastQC can be deactivated by setting the **run_fastqc** option to 0
 * **fastq_trimmed_dir** Fastq files after trimming will be copied here
 * **bam_dir** bam files will be copied here
 * **gvcf_dir** gvcf files of individual samples (created by GATK HaplotypeCaller) will be put here
@@ -163,15 +163,15 @@ For this you need [graphviz](https://graphviz.org/) installed, on metacentrum yo
 ```
 module load graphviz          
 ```
-While it should be possible to run this workflow on any HPC computing platform, I designed some aspects of it with the architecture of MetaCentrum in mind. That means that currently for each job all input files are copied to a temporary directory (defined by the **temp_dir** option, standard is the $SCRATCHDIR variable used to define the local filesystem of computing notes in MetaCentrum) and the results are copied back to the appropriate directory defined in the config file afterwards while all temporary files are deleted.
+While it should be possible to run this workflow on any HPC computing platform, I designed some aspects of it with the architecture of MetaCentrum in mind. That means that currently for each job all input files are copied to a temporary directory (defined by the **temp_dir** option, standard is the $SCRATCHDIR variable used to define the local filesystem of computing notes in MetaCentrum) and the results are copied back to the appropriate directory defined in the config file afterwards while all temporary files, which are not specifically designated as output files of rules, are deleted.
 
 ### Running it on MetaCentrum
 After you installed the  [Metacentrum cluster profile](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles), you can run snakemake using 
 ```
 snakemake  output_file --configfile config.yaml --profile snakemake_metacentrum -j 100
 ```
-This assumes that your cluster profile is located in $HOME/.config/snakemake/snakemake_metacentrum
-For longer workflows, you may want to run Snakemake itself on the [oven node](https://wiki.metacentrum.cz/wiki/Oven_node). You can do this by putting your Snakemake command in a jobscript and submit it using 
+This assumes that your cluster profile is located in $HOME/.config/snakemake/snakemake_metacentrum and will submit up to 100 jobs in parallel.
+For longer workflows, you may want to run Snakemake itself on the [oven node](https://wiki.metacentrum.cz/wiki/Oven_node). You can do this by putting your Snakemake command in a [jobscript](https://wiki.metacentrum.cz/wiki/Beginners_guide#Run_batch_jobs) and submit it using 
 ```
 qsub -q oven jobscipt.sh 
 ```
