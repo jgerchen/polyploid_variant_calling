@@ -213,6 +213,22 @@ You can generate any intermediate files that are defined in output directive of 
 * **config[vcf_filtered]/{species}.bi.fourfold.dp.nc.vcf.gz** previous file, but with marked genotypes set to no-call
 * **config[vcf_filtered]/{species}.bi.fourfold.dp.nc.m.vcf.gz** previous file, but with sites removed, which have a greater proportion of missing data than a pre-defined threshold (default 0.5, can be set using the **gen_max_missing** option)
 
+#### BCFtools
+* **config[vcf_dir]/{species}.merged.bt.vcf.gz** Unfiltered VCF file for all samples with all intervals merged
+* **config[vcf_filtered]/{species}.bisel.bt.vcf.gz** VCF file containing all biallelic SNPs (invariants, multi-allelic variants and INDELS and complex variants removed)
+* **config[vcf_filtered]/{species}.bifilt.bt.vcf.gz** Biallelic SNPs filtered for GATK best practice values by default (or individual values defined in the config files), with filtered Variants annotated in the FILTER column of the VCF file
+* **config[vcf_filtered]/{species}.bipassed.bt.vcf.gz** Biallelic SNPs with SNPs marked as filtered in the previous step removed
+* **config[vcf_filtered]/{species}.novarsel.bt.vcf.gz** VCF file containing invariant sites (bi- and multi-allelic variants and INDELS and complex variants removed)
+* **config[vcf_filtered]/{species}.novarfilt.bt.vcf.gz** Invariant sites filtered based on the QUAL score (default 15, can be changed by the **invariantQUAL_less** option) annotated in the FILTER column of the VCF file
+* **config[vcf_filtered]/{species}.novarpass.bt.vcf.gz** Invariants with sites filtered in the previous step removed
+* **config[vcf_filtered]/{species}.merged.bt.vcf.gz** Filtered biallelic SNPs and Invariants merged into a single VCF
+* **config[vcf_filtered]/{species}.merged.filtered.bt.vcf.gz** Biallelic SNPs and variants with additional exclusion of regions with excessive depth (defined in {species}\_dm.bed) and optional additonal bed file defining regions with excess heterozygosity (can be set using the **hetmask** option to a different value than the standard value "None")
+* **config[vcf_filtered]/{species}.bipassed.dp.bt.vcf.gz** Filtered bi-allic SNPs with genotypes that don't pass the minimum depth threshold (default 8, can be set using the **gen_min_depth** option) set to no-call
+* **config[vcf_filtered]/{species}.bipassed.dp.m.bt.vcf.gz** VCF file with sites removed, which have a greater proportion of missing data than a pre-defined threshold (default 0.5, can be set using the **gen_max_missing** option)
+* **config[vcf_filtered]/{species}.fourfold.filtered.bt.vcf.gz** biallelic SNPs and Invariants merged into a single VCF, subset to contain only fourfold degenerate sites (defined by the **fourfold** option)
+* **config[vcf_filtered]/{species}.bi.fourfold.dp.bt.vcf.gz** Filtered bi-allic SNPs with genotypes that don't pass the minimum depth threshold (default 8, can be set using the **gen_min_depth** option) set to no-call, hard filtered for **fourfold** degenrate site and **depthmask** and optional **hetmask** 
+* **config[vcf_filtered]/{species}.bi.fourfold.dp.m.bt.vcf.gz** previous file, but with sites removed, which have a greater proportion of missing data than a pre-defined threshold (default 0.5, can be set using the **gen_max_missing** option)
+
 
 
 ## Still to implement
