@@ -231,7 +231,7 @@ You can generate any intermediate files that are defined in output directive of 
 
 ## Notes
 * If you build a depth mask from scratch, you should manually adjust the -n parameter, see [here](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask) how to do this.
-* When setting filtering expressions (e.g. the QDless parameters etc.) you should make sure that you set the correct type (so 2.0 instead of just 2, see point 4 [here](https://gatk.broadinstitute.org/hc/en-us/articles/360035891011-JEXL-filtering-expressions). Thanks GATK developers...
+* When setting filtering expressions (e.g. the QDless parameters etc.) you should make sure that you set the correct type (so 2.0 instead of just 2, see point 4 [here](https://gatk.broadinstitute.org/hc/en-us/articles/360035891011-JEXL-filtering-expressions) ). Thanks GATK developers...
 
 
 ## Still to implement
