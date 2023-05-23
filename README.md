@@ -141,7 +141,7 @@ Here sample_name will determine the naming of other downstream files for each sa
 #### Pre-run scripts
 
 In addition, there is one script for each of the four parts of the workflow which contain commands, which are run every time before any of the rules in this part of the workflow is run. The idea is that you can load any software modules or conda packages in the way that is appropriate for your computing environment. You can also set a different set of pre-run scripts for your individual Snakemake runs by changing the folder with the cluster_code_dir option.
-If your computing environment does not require to run these scripts you can deactivate this functionality by setting the load_cluster_code option to 0.
+If your computing environment does not require to run these scripts you can deactivate this functionality by setting the **load_cluster_code** option to 0.
 
 #### On MetaCentrum:
 
