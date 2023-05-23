@@ -229,6 +229,9 @@ You can generate any intermediate files that are defined in output directive of 
 * **config[vcf_filtered]/{species}.bi.fourfold.dp.bt.vcf.gz** Filtered bi-allic SNPs with genotypes that don't pass the minimum depth threshold (default 8, can be set using the **gen_min_depth** option) set to no-call, hard filtered for **fourfold** degenrate site and **depthmask** and optional **hetmask** 
 * **config[vcf_filtered]/{species}.bi.fourfold.dp.m.bt.vcf.gz** previous file, but with sites removed, which have a greater proportion of missing data than a pre-defined threshold (default 0.5, can be set using the **gen_max_missing** option)
 
+## Notes
+* If you build a depth mask from scratch, you should manually adjust the -n parameter, see [here](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask) how to do this.
+* When setting filtering expressions (e.g. the QDless parameters etc.) you should make sure that you set the correct type (so 2.0 instead of just 2, see point 4 [here](https://gatk.broadinstitute.org/hc/en-us/articles/360035891011-JEXL-filtering-expressions). Thanks GATK developers...
 
 
 ## Still to implement
