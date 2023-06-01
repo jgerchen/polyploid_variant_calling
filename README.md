@@ -95,6 +95,7 @@ This workflow uses a bunch of other software packages, which are available as mo
 3. joint genotyping
 * Bedtools
 * GATK4
+* Bcftools
 4. Filtering of variant calls
 * GATK4 and PicardTools or Bcftools
 * Bedtools
@@ -191,11 +192,10 @@ You can generate any intermediate files that are defined in output directive of 
 ### 3_genotypeGVCF
 * **config[vcf_dir]/{species}\_{sub}.vcf.gz** Unfiltered VCF file for all samples for a specific interval {sub}, containing both variants and invariant sites
 * **config[depthmask_dir]/{species}\_dm.bed** Bedfile containing genomic regions with excessive depth, identified by the [depthmask script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask)
-
+* **config[vcf_dir]/{species}.merged.vcf.gz** Unfiltered VCF file for all samples with all intervals merged
 
 ### 4_filter
 #### GATK
-* **config[vcf_dir]/{species}.merged.vcf.gz** Unfiltered VCF file for all samples with all intervals merged
 * **config[vcf_filtered]/{species}.bisel.vcf.gz** VCF file containing all biallelic SNPs (invariants, multi-allelic variants and INDELS and complex variants removed)
 * **config[vcf_filtered]/{species}.bifilt.vcf.gz** Biallelic SNPs filtered for GATK best practice values by default (or individual values defined in the config files), with filtered Variants annotated in the FILTER column of the VCF file
 * **config[vcf_filtered]/{species}.bipassed.vcf.gz** Biallelic SNPs with SNPs marked as filtered in the previous step removed
@@ -213,7 +213,6 @@ You can generate any intermediate files that are defined in output directive of 
 * **config[vcf_filtered]/{species}.bi.fourfold.dp.nc.m.vcf.gz** previous file, but with sites removed, which have a greater proportion of missing data than a pre-defined threshold (default 0.5, can be set using the **gen_max_missing** option)
 
 #### BCFtools
-* **config[vcf_dir]/{species}.merged.bt.vcf.gz** Unfiltered VCF file for all samples with all intervals merged
 * **config[vcf_filtered]/{species}.bisel.bt.vcf.gz** VCF file containing all biallelic SNPs (invariants, multi-allelic variants and INDELS and complex variants removed)
 * **config[vcf_filtered]/{species}.bifilt.bt.vcf.gz** Biallelic SNPs filtered for GATK best practice values by default (or individual values defined in the config files), with filtered Variants annotated in the FILTER column of the VCF file
 * **config[vcf_filtered]/{species}.bipassed.bt.vcf.gz** Biallelic SNPs with SNPs marked as filtered in the previous step removed
