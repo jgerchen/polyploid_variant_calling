@@ -231,7 +231,8 @@ You can generate any intermediate files that are defined in output directive of 
 ## Notes
 * If you build a depth mask from scratch, you should manually adjust the -n parameter, see [here](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask) how to do this.
 * When setting filtering expressions (e.g. the QDless parameters etc.) you should make sure that you set the correct type (so 2.0 instead of just 2, see point 4 [here](https://gatk.broadinstitute.org/hc/en-us/articles/360035891011-JEXL-filtering-expressions) ). Thanks GATK developers...
-
+### Setting resources
+Each rule has a standard value for resources. Memory (in mb) is defined by **mem_mb**, disk space (in mb) is defined by **disk_mb**. These can be set manually using the --set-resources RULE:RESOURCE=VALUE option of Snakemake. So for example to set the memory requirement for rule GenotypeGenomicsDBSub to 100000 mb add the option  --set-resources GenotypeGenomicsDBSub:mem_mb=100000 to your snakemake command. Similarly, to set the number of threads for a specific rule you can use --set-threads RULE=THREADS. 
 
 ## Still to implement
 
