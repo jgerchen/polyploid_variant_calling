@@ -1,5 +1,43 @@
 configfile: "../config/4_filter.yaml"
 
+def filter_gatk_mem_mb(wildcards, attempt):
+	return int(config["filter_mem_mb"]+(config["filter_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
+def filter_gatk_disk_mb(wildcards, attempt):
+	return int(config["filter_disk_mb"]+(config["filter_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
+def filter_gatk_runtime(wildcards, attempt):
+	filter_gatk_runtime_cats=config["filter_runtime"].split(":")
+	return str(int(filter_gatk_runtime_cats[0])+int(int(filter_gatk_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+filter_gatk_runtime_cats[1]+":"+filter_gatk_runtime_cats[2]
+#rule MergeSubVCFs:
+#	input:
+#		out_vcf=expand(config["vcf_dir"]+"/{{species}}_{sub}.vcf.gz", sub=interval_list)
+#	output:
+#		vcf_out=config["vcf_dir"]+"/{species}.merged.vcf.gz",
+#		vcf_out_index=config["vcf_dir"]+"/{species}.merged.vcf.gz.tbi"
+#	threads: 1
+#	resources:
+#		mem_mb=16000,
+#		disk_mb=20000,
+#		runtime="4:00:00"
+#	log:
+#		config["log_dir"]+"/MergeSubVCFs_{species}.log"
+#	shell:
+#		"""
+#		temp_folder={config[temp_dir]}/MergeSubVCFs_{wildcards.species}
+#		mkdir -p $temp_folder
+#		trap 'rm -rf $temp_folder' TERM EXIT
+#		if [ {config[load_cluster_code]} -eq 1 ]
+#		then
+#			source {config[cluster_code_dir]}/4_filter_GATK.sh
+#		fi
+#		cp {input} $temp_folder
+#		cd $temp_folder
+#		ls *.vcf.gz > input_files.list
+#		java -jar $PICARD MergeVcfs I=input_files.list O={wildcards.species}.merged.vcf.gz &>> {log}
+#		cp {wildcards.species}.merged.vcf.gz {output.vcf_out}
+#		$GATK4 IndexFeatureFile -I {wildcards.species}.merged.vcf.gz  &>> {log}
+#		cp {wildcards.species}.merged.vcf.gz.tbi {output.vcf_out_index}
+#		"""
+#
 rule filter_GATK_bisnp:
 	input:
 		vcf_input=config["vcf_dir"]+"/{species}.merged.vcf.gz",
@@ -16,9 +54,9 @@ rule filter_GATK_bisnp:
 		bisnp_passed_index=config["vcf_filtered"]+"/{species}.bipassed.vcf.gz.tbi"
 	threads: 1
 	resources:
-		mem_mb=32000,
-		disk_mb=20000,
-		runtime="24:00:00"
+		mem_mb=filter_gatk_mem_mb,
+		disk_mb=filter_gatk_disk_mb,
+		runtime=filter_gatk_runtime
 	log:
 		config["log_dir"]+"/filter_GATK_bisnp_{species}.log"
 	shell:
@@ -36,9 +74,8 @@ rule filter_GATK_bisnp:
 		cp {wildcards.species}.bisel.vcf.gz {output.bisnp_sel} &>> {log}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bisel.vcf.gz 
 		cp {wildcards.species}.bisel.vcf.gz.tbi {output.bisnp_sel_index} 
-		#TODO: replace GATK standard filter values with values from config file
-		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bisel.vcf.gz -O {wildcards.species}.bifilt.vcf.gz --filter-name 'QD' --filter-expression 'QD < 2.0' --filter-name 'FS' --filter-expression 'FS > 60.0'  --filter-name 'MQ' --filter-expression 'MQ < 40.0' --filter-name 'MQRS' --filter-expression 'MQRankSum < -12.5' --filter-name 'RPRS' --filter-expression 'ReadPosRankSum < -8.0' --filter-name 'SOR' --filter-expression 'SOR > 3.0' &>> {log}
-		cp {wildcards.species}.bifilt.vcf.gz {output.bisnp_filt} 
+		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bisel.vcf.gz -O {wildcards.species}.bifilt.vcf.gz --filter-name \"QD\" --filter-expression \"QD < {config[QD_less]}\" --filter-name \"FS\" --filter-expression \"FS > {config[FS_more]}\"  --filter-name \"MQ\" --filter-expression \"MQ < {config[MQ_less]}\" --filter-name \"MQRS\" --filter-expression \"MQRankSum < {config[MQRS_less]}\" --filter-name \"RPRS\" --filter-expression \"ReadPosRankSum < {config[RPRS_less]}\" --filter-name \"SOR\" --filter-expression \"SOR > {config[SOR_more]}\" &>> {log}
+		cp {wildcards.species}.bifilt.vcf.gz {output.bisnp_filt}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bifilt.vcf.gz &>> {log}
 		cp {wildcards.species}.bifilt.vcf.gz.tbi {output.bisnp_filt_index} 
 		$GATK4 SelectVariants -R {wildcards.species}.fasta -V {wildcards.species}.bifilt.vcf.gz -O {wildcards.species}.bipassed.vcf.gz --exclude-filtered &>> {log}
@@ -63,9 +100,9 @@ rule filter_GATK_invariants:
 		novar_passed_index=config["vcf_filtered"]+"/{species}.novarpass.vcf.gz.tbi"  # sites that have not passed filters removed
 	threads: 1
 	resources:
-		mem_mb=32000,
-		disk_mb=20000,
-		runtime="24:00:00"
+		mem_mb=filter_gatk_mem_mb,
+		disk_mb=filter_gatk_disk_mb,
+		runtime=filter_gatk_runtime
 	log:
 		config["log_dir"]+"/filter_GATK_invariants_{species}.log"
 	shell:
@@ -83,7 +120,7 @@ rule filter_GATK_invariants:
 		cp {wildcards.species}.novarsel.vcf.gz {output.novar_sel}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.novarsel.vcf.gz &>> {log}
 		cp {wildcards.species}.novarsel.vcf.gz.tbi {output.novar_sel_index} 
-		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.novarsel.vcf.gz -O {wildcards.species}.novarfilt.vcf.gz --filter-name 'QUAL' --filter-expression 'QUAL < 15.0' &>> {log}
+		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.novarsel.vcf.gz -O {wildcards.species}.novarfilt.vcf.gz --filter-name \"QUAL\" --filter-expression \"QUAL < {config[invariantQUAL_less]}\" &>> {log}
 		cp {wildcards.species}.novarfilt.vcf.gz {output.novar_filt}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.novarfilt.vcf.gz &>> {log}
 		cp {wildcards.species}.novarfilt.vcf.gz.tbi {output.novar_filt_index} 
@@ -106,9 +143,9 @@ rule combine_GATK_variants:
 		merged_index=config["vcf_filtered"]+"/{species}.merged.vcf.gz.tbi"
 	threads: 1
 	resources:
-		mem_mb=16000,
-		disk_mb=20000,
-		runtime="24:00:00"
+		mem_mb=filter_gatk_mem_mb,
+		disk_mb=filter_gatk_disk_mb,
+		runtime=filter_gatk_runtime
 	log:
 		config["log_dir"]+"/combine_GATK_variants_{species}.log"
 	shell:
@@ -136,7 +173,7 @@ rule GATK_mask:
 		merged=config["vcf_filtered"]+"/{species}.merged.vcf.gz",
 		merged_index=config["vcf_filtered"]+"/{species}.merged.vcf.gz.tbi",
 		hetmask=config["hetmask"] if config["hetmask"]!="None" else [],
-		depthmask=config["depthmask"],
+		depthmask=config["depthmask_dir"]+"/{species}_dm.bed",
 		ref_fasta=config["fasta_dir"]+"/{species}.fasta",
 		ref_fasta_fai=config["fasta_dir"]+"/{species}.fasta.fai",
 		ref_fasta_dict=config["fasta_dir"]+"/{species}.dict"
@@ -145,9 +182,9 @@ rule GATK_mask:
 		merged_filtered_index=config["vcf_filtered"]+"/{species}.mergedfiltered.vcf.gz.tbi"
 	threads: 1
 	resources:
-		mem_mb=16000,
-		disk_mb=20000,
-		runtime="24:00:00"
+		mem_mb=filter_gatk_mem_mb,
+		disk_mb=filter_gatk_disk_mb,
+		runtime=filter_gatk_runtime
 	log:
 		config["log_dir"]+"/GATK_mask_{species}.log"
 	shell:
@@ -181,20 +218,21 @@ rule GATK_filter_gt_snps:
 		ref_fasta=config["fasta_dir"]+"/{species}.fasta",
 		ref_fasta_fai=config["fasta_dir"]+"/{species}.fasta.fai",
 		hetmask=config["hetmask"] if config["hetmask"]!="None" else [],
-		depthmask=config["depthmask"],
+		#depthmask=config["depthmask"],
+		depthmask=config["depthmask_dir"]+"/{species}_dm.bed",
 		ref_fasta_dict=config["fasta_dir"]+"/{species}.dict"
 	output:
-		bisnp_passed_dp=config["vcf_filtered"]+"/{species}.bipassed.dp"+str(config["gen_min_depth"])+".vcf.gz",
-		bisnp_passed_dp_index=config["vcf_filtered"]+"/{species}.bipassed.dp"+str(config["gen_min_depth"])+".vcf.gz.tbi",
-		bisnp_passed_dp_nc=config["vcf_filtered"]+"/{species}.bipassed.dp"+str(config["gen_min_depth"])+"nc.vcf.gz",
-		bisnp_passed_dp_nc_index=config["vcf_filtered"]+"/{species}.bipassed.dp"+str(config["gen_min_depth"])+"nc.vcf.gz.tbi",
-		bisnp_passed_dp_nc_m=config["vcf_filtered"]+"/{species}.bipassed.dp"+str(config["gen_min_depth"])+"nc.m"+str(config["gen_max_missing"])+".vcf.gz",
-		bisnp_passed_dp_nc_m_index=config["vcf_filtered"]+"/{species}.bipassed.dp"+str(config["gen_min_depth"])+"nc.m"+str(config["gen_max_missing"])+".vcf.gz.tbi"
+		bisnp_passed_dp=config["vcf_filtered"]+"/{species}.bipassed.dp.vcf.gz",
+		bisnp_passed_dp_index=config["vcf_filtered"]+"/{species}.bipassed.dp.vcf.gz.tbi",
+		bisnp_passed_dp_nc=config["vcf_filtered"]+"/{species}.bipassed.dp.nc.vcf.gz",
+		bisnp_passed_dp_nc_index=config["vcf_filtered"]+"/{species}.bipassed.dp.nc.vcf.gz.tbi",
+		bisnp_passed_dp_nc_m=config["vcf_filtered"]+"/{species}.bipassed.dp.nc.m.vcf.gz",
+		bisnp_passed_dp_nc_m_index=config["vcf_filtered"]+"/{species}.bipassed.dp.nc.m.vcf.gz.tbi"
 	threads: 1
 	resources:
-		mem_mb=32000,
-		disk_mb=40000,
-		runtime="24:00:00"
+		mem_mb=filter_gatk_mem_mb,
+		disk_mb=filter_gatk_disk_mb,
+		runtime=filter_gatk_runtime
 	log:
 		config["log_dir"]+"/GATK_filter_gt_snps_{species}.log"
 	shell:
@@ -219,7 +257,7 @@ rule GATK_filter_gt_snps:
 		fi
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bipassed.filtered.vcf.gz &>> {log}
 		
-		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bipassed.filtered.vcf.gz -O {wildcards.species}.bipassed.dp.vcf.gz --genotype-filter-expression \"DP < {config[gen_min_depth]}\" --genotype-filter-name 'DP' &>> {log}
+		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bipassed.filtered.vcf.gz -O {wildcards.species}.bipassed.dp.vcf.gz --genotype-filter-expression \"DP < {config[gen_min_depth]}\" --genotype-filter-name \"DP\" &>> {log}
 		cp {wildcards.species}.bipassed.dp.vcf.gz {output.bisnp_passed_dp}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bipassed.dp.vcf.gz &>> {log}
 		cp {wildcards.species}.bipassed.dp.vcf.gz.tbi {output.bisnp_passed_dp_index}
@@ -244,23 +282,24 @@ rule GATK_filter_gt_fourfold:
 		ref_fasta=config["fasta_dir"]+"/{species}.fasta",
 		ref_fasta_fai=config["fasta_dir"]+"/{species}.fasta.fai",
 		hetmask=config["hetmask"] if config["hetmask"]!="None" else [],
-		depthmask=config["depthmask"],
+		#depthmask=config["depthmask"],
+		depthmask=config["depthmask_dir"]+"/{species}_dm.bed",
 		ref_fasta_dict=config["fasta_dir"]+"/{species}.dict",
 		fourfold_sites=config["fourfold"] if config["fourfold"]!="None" else []
 	output:
 		fourfold_filtered=config["vcf_filtered"]+"/{species}.fourfold.filtered.vcf.gz",
 		fourfold_filtered_index=config["vcf_filtered"]+"/{species}.fourfold.filtered.vcf.gz.tbi",
-		fourfold_bi_dp=config["vcf_filtered"]+"/{species}.bi.fourfold.dp"+str(config["gen_min_depth"])+".vcf.gz",
-		fourfold_bi_dp_index=config["vcf_filtered"]+"/{species}.bi.fourfold.dp"+str(config["gen_min_depth"])+".vcf.gz.tbi",
-		fourfold_bi_dp_nc=config["vcf_filtered"]+"/{species}.bi.fourfold.dp"+str(config["gen_min_depth"])+"nc.vcf.gz",
-		fourfold_bi_dp_nc_index=config["vcf_filtered"]+"/{species}.bi.fourfold.dp"+str(config["gen_min_depth"])+"nc.vcf.gz.tbi",
-		fourfold_bi_dp_nc_m=config["vcf_filtered"]+"/{species}.bi.fourfold.dp"+str(config["gen_min_depth"])+"nc.m"+str(config["gen_max_missing"])+".vcf.gz",
-		fourfold_bi_dp_nc_m_index=config["vcf_filtered"]+"/{species}.bi.fourfold.dp"+str(config["gen_min_depth"])+"nc.m"+str(config["gen_max_missing"])+".vcf.gz.tbi"
+		fourfold_bi_dp=config["vcf_filtered"]+"/{species}.bi.fourfold.dp.vcf.gz",
+		fourfold_bi_dp_index=config["vcf_filtered"]+"/{species}.bi.fourfold.dp.vcf.gz.tbi",
+		fourfold_bi_dp_nc=config["vcf_filtered"]+"/{species}.bi.fourfold.dp.nc.vcf.gz",
+		fourfold_bi_dp_nc_index=config["vcf_filtered"]+"/{species}.bi.fourfold.dp.nc.vcf.gz.tbi",
+		fourfold_bi_dp_nc_m=config["vcf_filtered"]+"/{species}.bi.fourfold.dp.nc.m.vcf.gz",
+		fourfold_bi_dp_nc_m_index=config["vcf_filtered"]+"/{species}.bi.fourfold.dp.nc.m.vcf.gz.tbi"
 	threads: 1
 	resources:
-		mem_mb=32000,
-		disk_mb=40000,
-		runtime="24:00:00"
+		mem_mb=filter_gatk_mem_mb,
+		disk_mb=filter_gatk_disk_mb,
+		runtime=filter_gatk_runtime
 	log:
 		config["log_dir"]+"/GATK_filter_gt_fourfold_{species}.log"
 	shell:
@@ -288,7 +327,7 @@ rule GATK_filter_gt_fourfold:
 			$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bipassed.vcf.gz -O {wildcards.species}.bi.fourfold.filtered.vcf.gz -XL $depthmask -L $fourfold &>> {log}
 		fi
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bi.fourfold.filtered.vcf.gz &>> {log}
-		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bi.fourfold.filtered.vcf.gz -O {wildcards.species}.bi.fourfold.dp.vcf.gz --genotype-filter-expression \"DP < {config[gen_min_depth]}\" --genotype-filter-name 'DP' &>> {log}
+		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bi.fourfold.filtered.vcf.gz -O {wildcards.species}.bi.fourfold.dp.vcf.gz --genotype-filter-expression \"DP < {config[gen_min_depth]}\" --genotype-filter-name \"DP\" &>> {log}
 		cp {wildcards.species}.bi.fourfold.dp.vcf.gz {output.fourfold_bi_dp}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bi.fourfold.dp.vcf.gz &>> {log}
 		cp {wildcards.species}.bipassed.dp.vcf.gz.tbi {output.fourfold_bi_dp_index}
@@ -300,42 +339,4 @@ rule GATK_filter_gt_fourfold:
 		cp {wildcards.species}.bi.fourfold.dpncm.vcf.gz {output.fourfold_bi_dp_nc_m}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bi.fourfold.dpncm.vcf.gz &>> {log}
 		cp {wildcards.species}.bi.fourfold.dpncm.vcf.gz.tbi {config.bisnp_passed_dp_nc_m_index}
-		"""
-
-#make depth mask->check manually if it makes sense
-rule make_depth_mask:
-	input:
-		merged=config["vcf_filtered"]+"/{species}.merged.vcf.gz"
-	output:
-		#depthmask=config["depthmask"],
-		depth_out=config["depthmask_dir"]+"/{species}_dm_out.tsv",
-		depth_counts=config["depthmask_dir"]+"/{species}_dm_counts.tsv",
-		depth_hist=config["depthmask_dir"]+"/{species}_dm_hist.tsv",
-		depth_bed=config["depthmask_dir"]+"/{species}_dm.bed"
-	resources:
-		mem_mb=32000,
-		disk_mb=40000,
-		runtime="24:00:00"
-	log:
-		config["log_dir"]+"/make_depth_mask_{species}.log"
-	shell:
-		"""
-		temp_folder={config[temp_dir]}/make_depth_mask_{wildcards.species}
-		mkdir -p $temp_folder
-		trap 'rm -rf $temp_folder' TERM EXIT
-		if [ {config[load_cluster_code]} -eq 1 ]
-		then
-			source {config[cluster_code_dir]}/4_filter_GATK.sh
-		fi
-		cp {input} $temp_folder
-		cp scripts/make_depth_mask.py $temp_folder
-		cd $temp_folder
-		n_loci=$(zcat {wildcards.species}.merged.vcf.gz | grep -c \"^[^#]\")
-		python3 make_depth_mask.py -v {wildcards.species}.merged.vcf.gz -o out_file.tsv -c counts_out.tsv -p hist_out.tsv -n {config[depthmask_n]} -l $n_loci
-		cp out_file.tsv {output.depth_out}
-		cp counts_out.tsv {output.depth_counts}
-		cp hist_out.tsv {output.depth_hist}
-		awk '{{print $1\"\\t\"($2 - 1)\"\\t\"$2}}' out_file.tsv > out_file.bed
-		bedops -m out_file.bed > out_file_merged.bed
-		cp out_file_merged.bed {output.depth_bed}
 		"""
