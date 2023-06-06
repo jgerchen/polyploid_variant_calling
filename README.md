@@ -146,7 +146,7 @@ If your computing environment does not require to run these scripts you can deac
 
 #### On MetaCentrum:
 
-Here I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths the paths to conda and gatk4 in 2_callvars.sh, 3_genotypeGVCF.sh and 4_filter_GATK.sh (if you want to use GATK for filtering).
+[Here](examples/prerun_scripts) I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths the paths to conda and gatk4 in 2_callvars.sh, 3_genotypeGVCF.sh and 4_filter_GATK.sh (if you want to use GATK for filtering).
 
 ## Running the pipeline
 In priciple, you have to run Snakemake in the workflow directory (where the main Snakefile is located), giving the desired output file(s) as a parameter. In addition, you'll have to provide your main config file using the --configfile parameter and you'll have to define the number of parallel jobs using the -j parameter. Snakemake will then test if the output can be genrated given the rules and input files. If true, it will run the rules and generate output files. For most downstreaam output files that you're most likely interested in generating, you'll have to set the {species} [wildcard](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#wildcards), which will then be automatically used for naming all upstream files.
