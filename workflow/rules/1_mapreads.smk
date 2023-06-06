@@ -16,7 +16,6 @@ with open(config["sample_list"]) as sample_list:
 		assert len(samples_r1)>0, "No library from sample %s matches regular expression for first read pair" % sample_cats[0]
 		sample_libs_dict={str(i+1):(samples_r1[i] ,samples_r1[i].replace("R1", "R2")) for i in range(len(samples_r1))}
 		sample_dict.update({sample_cats[0]:(sample_libs_dict, config["adapter_dir"]+"/"+sample_cats[2])})	
-
 def get_fwd_reads(wildcards):
 	return sample_dict[wildcards.sample][0][wildcards.lib][0]
 def get_rev_reads(wildcards):
@@ -54,6 +53,14 @@ def get_adapter_file(wildcards):
 #		cp -r fastqc_files {output}
 #		"""
 
+def trimmomatic_mem_mb(wildcards, attempt):
+	return int(config["trimmomatic_mem_mb"]+(config["trimmomatic_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
+def trimmomatic_disk_mb(wildcards, attempt):
+	return int(config["trimmomatic_disk_mb"]+(config["trimmomatic_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
+def trimmomatic_runtime(wildcards, attempt):
+	trimmomatic_runtime_cats=config["trimmomatic_runtime"].split(":")
+	return str(int(trimmomatic_runtime_cats[0])+int(int(trimmomatic_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+trimmomatic_runtime_cats[1]+":"+trimmomatic_runtime_cats[2]
+
 rule trimmomatic:
 	input:
 		fwd_reads=get_fwd_reads,
@@ -64,8 +71,8 @@ rule trimmomatic:
 		fwd_reads_unpaired=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_U1.fastq.gz",
 		rev_reads_trimmed=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_R2.fastq.gz",
 		rev_reads_unpaired=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_U2.fastq.gz",
-		pre_fwd=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_fwd.html", category="trimmomatic", subcategory="fastQC before trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1"}) if config["run_fastqc"]==True else [],
-		pre_rev=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_rev.html", category="trimmomatic", subcategory="fastQC before trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2"}) if config["run_fastqc"]==True else [],
+		pre_fwd=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_fwd.html", category="trimmomatic", subcategory="fastQC before trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1"}) if config["run_fastqc"]==1 else [],
+		pre_rev=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_rev.html", category="trimmomatic", subcategory="fastQC before trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2"}) if config["run_fastqc"]==1 else [],
 		post_fwd_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Yes"}) if config["run_fastqc"]==True else [],
 		post_rev_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Yes"}) if config["run_fastqc"]==True else [],
 		post_fwd_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Singleton"}) if config["run_fastqc"]==True else [],
@@ -73,9 +80,9 @@ rule trimmomatic:
 
 	threads: 6
 	resources:
-		mem_mb=16000,
-		disk_mb=4000,
-		runtime="4:00:00"
+		mem_mb=trimmomatic_mem_mb,
+		disk_mb=trimmomatic_disk_mb,
+		runtime=trimmomatic_runtime
 	log:
 		config["log_dir"]+"/trimmomatic_{sample}_{lib}.log"
 	shell:
@@ -91,7 +98,7 @@ rule trimmomatic:
 		cd $temp_folder
 		fwd_reads=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads})
 		rev_reads=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads})
-		if [ {config[run_fastqc]} = 'True' ]
+		if [ {config[run_fastqc]} = 1 ]
 		then
 			mkdir fastqc_pre_out
 			fastqc -o fastqc_pre_out -t {threads} -f fastq  *.fastq.gz &>>{log}
@@ -101,7 +108,7 @@ rule trimmomatic:
 
 		adapter_file=$(awk -F/ '{{print $NF}}' <<< {input.adapter_file} )
 		trimmomatic PE -threads {threads} -trimlog trimmomatic.log $fwd_reads $rev_reads output_forward_paired.fq.gz output_forward_unpaired.fq.gz output_reverse_paired.fq.gz output_reverse_unpaired.fq.gz ILLUMINACLIP:$adapter_file:2:23:10 TRAILING:15 SLIDINGWINDOW:4:15 MINLEN:50 &>> {log}
-		if [ {config[run_fastqc]} = 'True' ]
+		if [ {config[run_fastqc]} = 1 ]
 		then
 			mkdir fastqc_post_out
 			fastqc -o fastqc_post_out -t {threads} -f fastq  output_{{forward,reverse}}_{{paired,unpaired}}.fq.gz
@@ -117,6 +124,13 @@ rule trimmomatic:
 		cp output_reverse_unpaired.fq.gz {output.rev_reads_unpaired}	
 		"""
 
+def map_reads_mem_mb(wildcards, attempt):
+	return int(config["map_reads_mem_mb"]+(config["map_reads_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
+def map_reads_disk_mb(wildcards, attempt):
+	return int(config["map_reads_disk_mb"]+(config["map_reads_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
+def map_reads_runtime(wildcards, attempt):
+	map_reads_runtime_cats=config["map_reads_runtime"].split(":")
+	return str(int(map_reads_runtime_cats[0])+int(int(map_reads_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+map_reads_runtime_cats[1]+":"+map_reads_runtime_cats[2]
 rule map_reads:
 	input:
 		reference=config["fasta_dir"]+"/{species}.fasta",
@@ -136,11 +150,11 @@ rule map_reads:
 		bam_index=config["bam_dir"]+"/{species}_{sample}_{lib}.bam.bai"
 	threads: 6
 	resources:
-		mem_mb=32000,
-		disk_mb=4000,
-		runtime="8:00:00"
+		mem_mb=map_reads_mem_mb,
+		disk_mb=map_reads_disk_mb,
+		runtime=map_reads_runtime
 	log:
-		config["log_dir"]+"/{species}_{sample}_{lib}.log"
+		config["log_dir"]+"/map_reads_{species}_{sample}_{lib}.log"
 	shell:
 		"""
 		temp_folder={config[temp_dir]}/map_reads_{wildcards.species}_{wildcards.sample}_{wildcards.lib}
@@ -168,6 +182,13 @@ rule map_reads:
 def get_bam_libs(wildcards):
 	return [config["bam_dir"]+"/"+wildcards.species+"_"+wildcards.sample+"_"+i+".bam" for i in list(sample_dict[wildcards.sample][0].keys())]
 
+def merge_bams_mem_mb(wildcards, attempt):
+	return int(config["merge_bams_mem_mb"]+(config["merge_bams_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
+def merge_bams_disk_mb(wildcards, attempt):
+	return int(config["merge_bams_disk_mb"]+(config["merge_bams_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
+def merge_bams_runtime(wildcards, attempt):
+	merge_bams_runtime_cats=config["merge_bams_runtime"].split(":")
+	return str(int(merge_bams_runtime_cats[0])+int(int(merge_bams_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+merge_bams_runtime_cats[1]+":"+merge_bams_runtime_cats[2]
 rule merge_bams_deduplicate:
 	input:
 		get_bam_libs
@@ -177,7 +198,7 @@ rule merge_bams_deduplicate:
 		merged_dedup=config["bam_dir"]+"/{species}_{sample}.merged.dedup.bam",
 		merged_dedup_index=config["bam_dir"]+"/{species}_{sample}.merged.dedup.bam.bai",
 		stats_flagstat=config["report_dir"]+"/merge_bams_dedup/{species}_{sample}.flagstats.tsv",
-		stats_flagstat_table=report(config["report_dir"]+"/merge_bams_dedup/table_flagstats/{species}_{sample}.rst", category="Merge bams and deduplicate", subcategory="Flagstat table", labels={"Sample":"{sample}"}),
+		#stats_flagstat_table=report(config["report_dir"]+"/merge_bams_dedup/table_flagstats/{species}_{sample}.rst", category="Merge bams and deduplicate", subcategory="Flagstat table", labels={"Sample":"{sample}"}),
 		stats_stat=config["report_dir"]+"/merge_bams_dedup/{species}_{sample}.stats",
 		stats_plot_acgt_cycles=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_agct_cycles.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"ACGT content per cycle"}),
 		stats_plot_coverage=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_coverage.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Coverage plot"}),
@@ -193,11 +214,11 @@ rule merge_bams_deduplicate:
 		
 	threads: 2
 	resources:
-		mem_mb=16000,
-		disk_mb=16000,
-		runtime="24:00:00"
+		mem_mb=merge_bams_mem_mb,
+		disk_mb=merge_bams_disk_mb,
+		runtime=merge_bams_runtime
 	log:
-		config["log_dir"]+"/{species}_{sample}.log"
+		config["log_dir"]+"/deduplicate_{species}_{sample}.log"
 	shell:
 		"""
 		temp_folder={config[temp_dir]}/merge_bams_{wildcards.species}_{wildcards.sample}
@@ -216,26 +237,28 @@ rule merge_bams_deduplicate:
 		samtools index all_merged.dedup.bam &>>{log}
 		cat dup_metrics.log >> {log}
 		samtools flagstat all_merged.dedup.bam -O tsv > all_merged.flagstat.tsv
+		mkdir -p {config[report_dir]}/merge_bams_dedup 
 		cp all_merged.flagstat.tsv {output.stats_flagstat}
-		echo \"==== ====\" > flagstat_table.rst
-		awk '{{print $3\" \"$1}}' all_merged.flagstat.tsv >> flagstat_table.rst
-		echo \"==== ====\" >> flagstat_table.rst
-		cp flagstat_table.rst {output.stats_flagstat_table}
+		#echo \"==== ====\" > flagstat_table.rst
+		#awk '{{print $3\" \"$1}}' all_merged.flagstat.tsv >> flagstat_table.rst
+		#echo \"==== ====\" >> flagstat_table.rst
 		samtools stats all_merged.dedup.bam > all_merged.stats
 		mkdir plot_stats
 		plot-bamstats -p plot_stats/{wildcards.species}_{wildcards.sample} all_merged.stats
 		cp all_merged.stats {output.stats_stat}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-acgt-cycles.png {output.stats_plot_acgt_cycles}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-coverage.png {output.stats_plot_coverage}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-gc-content.png {output.stats_plot_gc_content}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-gc-depth.png {output.stats_plot_gc_depth}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-indel-cycles.png {output.stats_plot_indel_cycles}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-indel-dist.png {output.stats_plot_indel_dist}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-insert-size.png {output.stats_plot_insert_size}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-quals.png {output.stats_plot_quals}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-quals-hm.png {output.stats_plot_quals_hm}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-quals2.png {output.stats_plot_quals2}
-		cp plots_stats/{wildcards.species}_{wildcards.sample}-quals3.png {output.stats_plot_quals3}
+
+		mkdir -p {config[report_dir]}/merge_bams_dedup/plot_bamstats 
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-acgt-cycles.png {output.stats_plot_acgt_cycles}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-coverage.png {output.stats_plot_coverage}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-gc-content.png {output.stats_plot_gc_content}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-gc-depth.png {output.stats_plot_gc_depth}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-indel-cycles.png {output.stats_plot_indel_cycles}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-indel-dist.png {output.stats_plot_indel_dist}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-insert-size.png {output.stats_plot_insert_size}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-quals.png {output.stats_plot_quals}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-quals-hm.png {output.stats_plot_quals_hm}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-quals2.png {output.stats_plot_quals2}
+		cp plot_stats/{wildcards.species}_{wildcards.sample}-quals3.png {output.stats_plot_quals3}
 		cp all_merged.bam {output.merged}
 		cp all_merged.bam.bai {output.merged_index}
 		cp all_merged.dedup.bam {output.merged_dedup}

@@ -1,2 +1,8 @@
 temp_dir: "$SCRATCHDIR"
+repeat_mem_mb_factor: 1
+repeat_disk_mb_factor: 1
+repeat_runtime_factor: 1
 load_cluster_code: 1
+index_mem_mb: 8000
+index_disk_mb: 4000
+index_runtime: "4:00:00"

@@ -15,9 +15,9 @@ rule index_reference:
 	
 	threads: 1
 	resources:
-		mem_mb=8000,
-		disk_mb=4000,
-		runtime="4:00:00"
+		mem_mb=config["index_mem_mb"],
+		disk_mb=config["index_disk_mb"],
+		runtime=config["index_runtime"]
 	log:
 		config["log_dir"]+"/{species}_indexref.log"
 	shell:
@@ -29,11 +29,18 @@ rule index_reference:
 		then
 			source {config[cluster_code_dir]}/0_indexreference.sh
 		fi
-		cp {input} $temp_folder/{wildcards.species}.fasta
+		cp {input} $temp_folder
 		cd $temp_folder
-		ref={wildcards.species}.fasta
-		java -jar $PICARD CreateSequenceDictionary R=$ref O=${{ref/fasta/dict}} &>> {log}
-		samtools faidx $ref &>> {log}
-		bwa index $ref &>> {log}
+		ref=$(awk -F/ '{{print $NF}}' <<< {input})
+		ref_ending=$(echo -n $ref | tail -c 3)
+		if [ $ref_ending = ".gz" ]
+		then
+			gunzip $ref
+			ref=${{ref%.gz}}
+		fi
+		mv $ref {wildcards.species}.fasta
+		java -jar $PICARD CreateSequenceDictionary R={wildcards.species}.fasta O={wildcards.species}.dict &>> {log}
+		samtools faidx {wildcards.species}.fasta &>> {log}
+		bwa index {wildcards.species}.fasta &>> {log}
 		cp * {config[fasta_dir]}
 		"""
