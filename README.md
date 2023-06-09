@@ -109,7 +109,7 @@ git clone https://github.com/jgerchen/polyploid_variant_calling
 
 #### Configuration
 
-General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html) is implemented using yaml files. There is one yaml file in the config directory for each of the four parts of the workflow, in which default parameters for some options are put. Importantly, you have to provide an additional custom yaml file for your specific Snakemake run in which you set a number of paths to directories and other config files, for which there are no default settings. You can also add any of the settings from the default config file to this file to override them.
+General [configuration of Snakemake](https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html) is implemented using yaml files. There is one yaml file in the [config directory](config) for each of the four parts of the workflow, in which default parameters for some options are put. Importantly, you have to provide an additional custom yaml file ([example](examples/example.yaml)) for your specific Snakemake run in which you set a number of paths to directories and other config files, for which there are no default settings. You can also add any of the settings from the default config file to this file to override them.
 The individual parameters that have to be set are:
 ##### Input files
 * **input_fasta** Your reference genome in fasta format
@@ -146,7 +146,7 @@ If your computing environment does not require to run these scripts you can deac
 
 #### On MetaCentrum:
 
-Here I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths the paths to conda and gatk4 in 2_callvars.sh, 3_genotypeGVCF.sh and 4_filter_GATK.sh (if you want to use GATK for filtering).
+[Here](examples/prerun_scripts) I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths to conda and gatk4 in 2_callvars.sh, 3_genotypeGVCF.sh and 4_filter_GATK.sh (if you want to use GATK for filtering).
 
 ## Running the pipeline
 In priciple, you have to run Snakemake in the workflow directory (where the main Snakefile is located), giving the desired output file(s) as a parameter. In addition, you'll have to provide your main config file using the --configfile parameter and you'll have to define the number of parallel jobs using the -j parameter. Snakemake will then test if the output can be genrated given the rules and input files. If true, it will run the rules and generate output files. For most downstreaam output files that you're most likely interested in generating, you'll have to set the {species} [wildcard](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#wildcards), which will then be automatically used for naming all upstream files.
