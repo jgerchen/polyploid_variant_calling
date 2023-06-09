@@ -36,7 +36,7 @@ rule filter_bcftools_bisnp:
 		fi
 		cp {input} $temp_folder
 		cd $temp_folder
-		bcftools view --threads 1 -m2 -M2 -v snps -o {wildcards.species}.bisel.bt.vcf.gz -O z {wildcards.species}.merged.bt.vcf.gz  &>> {log}
+		bcftools view --threads 1 -m2 -M2 -v snps -o {wildcards.species}.bisel.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz  &>> {log}
  		
 		cp {wildcards.species}.bisel.bt.vcf.gz {output.bisnp_sel} &>> {log}
 		tabix {wildcards.species}.bisel.bt.vcf.gz &>> {log}
@@ -79,7 +79,7 @@ rule filter_bcftools_invariants:
 		fi
 		cp {input} $temp_folder
 		cd $temp_folder
-		bcftools view --threads 1 -C 0 -o {wildcards.species}.novarsel.bt.vcf.gz -O z {wildcards.species}.merged.bt.vcf.gz &>> {log}
+		bcftools view --threads 1 -C 0 -o {wildcards.species}.novarsel.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz &>> {log}
 		cp {wildcards.species}.novarsel.bt.vcf.gz {output.novar_sel}
 		tabix {wildcards.species}.novarsel.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.novarsel.bt.vcf.gz.tbi {output.novar_sel_index} 

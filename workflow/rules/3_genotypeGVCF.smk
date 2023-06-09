@@ -42,7 +42,7 @@ rule GenotypeGenomicsDBSub:
 		mkdir tmp
 		sub_interval_list=$(awk -F/ '{{print $NF}}' <<< {input.sub_interval_list})
 		sub_interval=$(awk '{{if ($1==\"{wildcards.sub}\") print $2 }}' $sub_interval_list)
-		$GATK4 --java-options \"-Xmx90G\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
+		$GATK4 --java-options \"-Xmx{resources[mem_mb]}m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
 		cp {wildcards.species}_{wildcards.sub}.vcf.gz {output} 
 		"""
 def make_depth_mask_mem_mb(wildcards, attempt):
