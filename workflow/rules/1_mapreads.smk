@@ -9,7 +9,11 @@ sample_dict={}
 with open(config["sample_list"]) as sample_list:
 	for line in sample_list:
 		sample_cats=line.strip().split("\t")
-		sample_libs=glob.glob(config["fastq_dir"]+"/**/"+sample_cats[1]+"*.f*q*", recursive=True)
+		sample_libs=[]
+		for s_cat_multiple in sample_cats[1].split(","):
+			sample_glob=glob.glob(config["fastq_dir"]+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
+			if len(sample_glob)>0:
+				sample_libs=list(set(sample_libs).union(set(sample_glob)))
 		assert len(sample_libs)>=2, "There have to be at least 2 libraries per sample, however sample %s only has %s." % (sample_cats[0], len(sample_libs))
 		r1_re=re.compile(".*R1.*")
 		samples_r1=list(filter(r1_re.match, sample_libs))
