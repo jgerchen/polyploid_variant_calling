@@ -155,9 +155,9 @@ In general, it is useful to do a dry run, to test if the workflow (with your con
 ```
 snakemake output_file -n --configfile config.yaml
 ```
-You can also plot the [DAG](https://snakemake.readthedocs.io/en/stable/tutorial/basics.html#step-4-indexing-read-alignments-and-visualizing-the-dag-of-jobs) of your workflow as a pdf without running the actual workflow
+You can also plot the [DAG](https://snakemake.readthedocs.io/en/stable/tutorial/basics.html#step-4-indexing-read-alignments-and-visualizing-the-dag-of-jobs) of your workflow as a svg without running the actual workflow
 ```
-snakemake output_file --configfile config.yaml --dag | dot -Tpdf -Gsize="11,8│!" > dag.pdf           
+snakemake output_file --configfile config.yaml --dag | dot -Tsvg > dag.svg          
 ```
 For this you need [graphviz](https://graphviz.org/) installed, on metacentrum you can load it as a module using
 ```
