@@ -37,7 +37,7 @@ rule filter_bcftools_bisnp:
 		cp {input} $temp_folder
 		cd $temp_folder
 		bcftools view --threads 1 -m2 -M2 -v snps -o {wildcards.species}.bisel.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz  &>> {log}
- 		
+		 		
 		cp {wildcards.species}.bisel.bt.vcf.gz {output.bisnp_sel} &>> {log}
 		tabix {wildcards.species}.bisel.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.bisel.bt.vcf.gz.tbi {output.bisnp_sel_index} 
