@@ -281,3 +281,47 @@ rule bcftools_filter_gt_fourfold:
 		tabix {wildcards.species}.fourfold.dp.m.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.fourfold.dp.m.bt.vcf.gz.tbi {output.fourfold_passed_dp_m_index}
 		"""
+def make_depth_mask_mem_mb_bt(wildcards, attempt):
+	return int(config["make_depth_mask_mem_mb"]+(config["make_depth_mask_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
+def make_depth_mask_disk_mb_bt(wildcards, attempt):
+	return int(config["make_depth_mask_disk_mb"]+(config["make_depth_mask_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
+def make_depth_mask_runtime_bt(wildcards, attempt):
+	make_depth_mask_runtime_cats=config["make_depth_mask_runtime"].split(":")
+	return str(int(make_depth_mask_runtime_cats[0])+int(int(make_depth_mask_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+make_depth_mask_runtime_cats[1]+":"+make_depth_mask_runtime_cats[2]
+#make depth mask->check manually if it makes sense
+rule make_depth_mask_bt:
+	input:
+		merged=config["vcf_filtered"]+"/{species}.merged.bt.vcf.gz"
+	output:
+		#depthmask=config["depthmask"],
+		depth_out=config["depthmask_dir"]+"/{species}_dm_out.bt.tsv",
+		depth_counts=config["depthmask_dir"]+"/{species}_dm_counts.bt.tsv",
+		depth_hist=config["depthmask_dir"]+"/{species}_dm_hist.bt.tsv",
+		depth_bed=config["depthmask_dir"]+"/{species}_dm.bt.bed"
+	resources:
+		mem_mb=make_depth_mask_mem_mb_bt,
+		disk_mb=make_depth_mask_disk_mb_bt,
+		runtime=make_depth_mask_runtime_bt
+	log:
+		config["log_dir"]+"/make_depth_mask_{species}.bt.log"
+	shell:
+		"""
+		temp_folder={config[temp_dir]}/make_depth_mask_{wildcards.species}_bt
+		mkdir -p $temp_folder
+		trap 'rm -rf $temp_folder' TERM EXIT
+		if [ {config[load_cluster_code]} -eq 1 ]
+		then
+			source {config[cluster_code_dir]}/4_filter_bcftools.sh
+		fi
+		cp {input} $temp_folder
+		cp scripts/make_depth_mask.py $temp_folder
+		cd $temp_folder
+		n_loci=$(zcat {wildcards.species}.merged.bt.vcf.gz | grep -c \"^[^#]\")
+		python3 make_depth_mask.py -v {wildcards.species}.merged.bt.vcf.gz -o out_file.tsv -c counts_out.tsv -p hist_out.tsv -n {config[depthmask_n]} -l $n_loci
+		cp out_file.tsv {output.depth_out}
+		cp counts_out.tsv {output.depth_counts}
+		cp hist_out.tsv {output.depth_hist}
+		awk '{{print $1\"\\t\"($2 - 1)\"\\t\"$2}}' out_file.tsv > out_file.bed
+		bedops -m out_file.bed > out_file_merged.bed
+		cp out_file_merged.bed {output.depth_bed}
+		"""
