@@ -9,6 +9,6 @@ make_depth_mask_disk_mb: 40000
 make_depth_mask_runtime: "24:00:00"
 #default resources for rule MergeSubVCFsbcftools
 MergeSubVCFsbcftools_mem_mb: 32000
-MergeSubVCFsbcftools_disk_mb: 20000
+MergeSubVCFsbcftools_disk_mb: 100000
 MergeSubVCFsbcftools_runtime: "6:00:00"
 
