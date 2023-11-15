@@ -1,14 +1,14 @@
 run_fastqc: 1
 #default resources for rule trimmomatic
-trimmomatic_mem_mb: 16000
+trimmomatic_mem_mb: 32000
 trimmomatic_disk_mb: 4000
-trimmomatic_runtime: "4:00:00"
+trimmomatic_runtime: "12h"
 #default resources for rule map_reads
 map_reads_mem_mb: 32000
 map_reads_disk_mb: 4000
-map_reads_runtime: "24:00:00"
+map_reads_runtime: "24h"
 #default resources for rule merge_bams_deduplicate
 merge_bams_mem_mb: 16000
 merge_bams_disk_mb: 16000
-merge_bams_runtime: "24:00:00"
+merge_bams_runtime: "24h"
 

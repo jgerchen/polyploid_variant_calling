@@ -3,8 +3,8 @@ hapcaller_minmapq: 20
 #default resources for rule hapcallerSub
 hapcallerSub_mem_mb: 32000
 hapcallerSub_disk_mb: 10000
-hapcallerSub_runtime: "24:00:00"
+hapcallerSub_runtime: "24h"
 #default resources for rule GenomicsDBimportSub
 GenomicsDBimportSub_mem_mb: 32000
 GenomicsDBimportSub_disk_mb: 10000
-GenomicsDBimportSub_runtime: "12:00:00"
+GenomicsDBimportSub_runtime: "12h"

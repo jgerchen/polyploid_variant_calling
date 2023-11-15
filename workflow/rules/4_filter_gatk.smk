@@ -5,8 +5,10 @@ def filter_gatk_mem_mb(wildcards, attempt):
 def filter_gatk_disk_mb(wildcards, attempt):
 	return int(config["filter_disk_mb"]+(config["filter_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def filter_gatk_runtime(wildcards, attempt):
-	filter_gatk_runtime_cats=config["filter_runtime"].split(":")
-	return str(int(filter_gatk_runtime_cats[0])+int(int(filter_gatk_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+filter_gatk_runtime_cats[1]+":"+filter_gatk_runtime_cats[2]
+	filter_gatk_runtime_seconds=parse_timespan(config["filter_runtime"])
+	return str(filter_gatk_runtime_seconds+int((filter_gatk_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+#filter_gatk_runtime_cats=config["filter_runtime"].split(":")
+#	return str(int(filter_gatk_runtime_cats[0])+int(int(filter_gatk_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+filter_gatk_runtime_cats[1]+":"+filter_gatk_runtime_cats[2]
 #rule MergeSubVCFs:
 #	input:
 #		out_vcf=expand(config["vcf_dir"]+"/{{species}}_{sub}.vcf.gz", sub=interval_list)
@@ -345,8 +347,10 @@ def make_depth_mask_mem_mb(wildcards, attempt):
 def make_depth_mask_disk_mb(wildcards, attempt):
 	return int(config["make_depth_mask_disk_mb"]+(config["make_depth_mask_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def make_depth_mask_runtime(wildcards, attempt):
-	make_depth_mask_runtime_cats=config["make_depth_mask_runtime"].split(":")
-	return str(int(make_depth_mask_runtime_cats[0])+int(int(make_depth_mask_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+make_depth_mask_runtime_cats[1]+":"+make_depth_mask_runtime_cats[2]
+	make_depth_mask_runtime_seconds=parse_timespan(config["filter_runtime"])
+	return str(make_depth_mask_runtime_seconds+int((make_depth_mask_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+#make_depth_mask_runtime_cats=config["make_depth_mask_runtime"].split(":")
+#	return str(int(make_depth_mask_runtime_cats[0])+int(int(make_depth_mask_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+make_depth_mask_runtime_cats[1]+":"+make_depth_mask_runtime_cats[2]
 #make depth mask->check manually if it makes sense
 rule make_depth_mask:
 	input:
