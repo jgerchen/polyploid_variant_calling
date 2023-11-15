@@ -21,4 +21,4 @@ filter_mem_mb: 32000
 #default Disk space for all filtering jobs
 filter_disk_mb: 20000
 #default runtime for all filtering jobs
-filter_runtime: "24:00:00"
+filter_runtime: "24h"

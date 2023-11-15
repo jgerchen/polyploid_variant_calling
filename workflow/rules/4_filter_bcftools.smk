@@ -1,12 +1,15 @@
 configfile: "../config/4_filter.yaml"
+from humanfriendly import parse_timespan
 
 def filter_bcftools_mem_mb(wildcards, attempt):
 	return int(config["filter_mem_mb"]+(config["filter_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
 def filter_bcftools_disk_mb(wildcards, attempt):
 	return int(config["filter_disk_mb"]+(config["filter_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def filter_bcftools_runtime(wildcards, attempt):
-	filter_bcftools_runtime_cats=config["filter_runtime"].split(":")
-	return str(int(filter_bcftools_runtime_cats[0])+int(int(filter_bcftools_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+filter_bcftools_runtime_cats[1]+":"+filter_bcftools_runtime_cats[2]
+	bcftools_runtime_seconds=parse_timespan(config["filter_runtime"])
+	return str(bcftools_runtime_seconds+int((bcftools_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	#	filter_bcftools_runtime_cats=config["filter_runtime"].split(":")
+	#return str(int(filter_bcftools_runtime_cats[0])+int(int(filter_bcftools_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+filter_bcftools_runtime_cats[1]+":"+filter_bcftools_runtime_cats[2]
 
 rule filter_bcftools_bisnp:
 	input:
@@ -14,10 +17,17 @@ rule filter_bcftools_bisnp:
 	output:
 		bisnp_sel=config["vcf_filtered"]+"/{species}.bisel.bt.vcf.gz",
 		bisnp_sel_index=config["vcf_filtered"]+"/{species}.bisel.bt.vcf.gz.tbi",
-		bisnp_filt=config["vcf_filtered"]+"/{species}.bifilt.bt.vcf.gz",
-		bisnp_filt_index=config["vcf_filtered"]+"/{species}.bifilt.bt.vcf.gz.tbi",
+		#bisnp_filt=config["vcf_filtered"]+"/{species}.bifilt.bt.vcf.gz",
+		#bisnp_filt_index=config["vcf_filtered"]+"/{species}.bifilt.bt.vcf.gz.tbi",
 		bisnp_passed=config["vcf_filtered"]+"/{species}.bipassed.bt.vcf.gz",
-		bisnp_passed_index=config["vcf_filtered"]+"/{species}.bipassed.bt.vcf.gz.tbi"
+		bisnp_passed_index=config["vcf_filtered"]+"/{species}.bipassed.bt.vcf.gz.tbi",
+		plot_MQ=report(config["report_dir"]+"/filter_bcftools_bisnp/{species}_biSNP_MQ.pdf", category="filter_bcftools_bisnp", labels={"Filtered":"Biallelic SNPs","Statistic":"MQ"}),
+		plot_QD=report(config["report_dir"]+"/filter_bcftools_bisnp/{species}_biSNP_QD.pdf", category="filter_bcftools_bisnp", labels={"Filtered":"Biallelic SNPs","Statistic":"QD"}),
+		plot_FS=report(config["report_dir"]+"/filter_bcftools_bisnp/{species}_biSNP_FS.pdf", category="filter_bcftools_bisnp", labels={"Filtered":"Biallelic SNPs","Statistic":"FS"}),
+		plot_MQRS=report(config["report_dir"]+"/filter_bcftools_bisnp/{species}_biSNP_MQRankSum.pdf", category="filter_bcftools_bisnp", labels={"Filtered":"Biallelic SNPs","Statistic":"MQRankSum"}),
+		plot_RPRS=report(config["report_dir"]+"/filter_bcftools_bisnp/{species}_biSNP_ReadPosRankSum.pdf", category="filter_bcftools_bisnp", labels={"Filtered":"Biallelic SNPs","Statistic":"ReadPosRankSum"}),
+		plot_SOR=report(config["report_dir"]+"/filter_bcftools_bisnp/{species}_biSNP_SOR.pdf", category="filter_bcftools_bisnp", labels={"Filtered":"Biallelic SNPs","Statistic":"SOR"})
+
 	threads: 2
 	resources:
 		mem_mb=filter_bcftools_mem_mb,
@@ -34,18 +44,36 @@ rule filter_bcftools_bisnp:
 		then
 			source {config[cluster_code_dir]}/4_filter_bcftools.sh
 		fi
+		cp scripts/plot_SNPs_GATK_best_practices.R $temp_folder 
 		cp {input} $temp_folder
 		cd $temp_folder
 		bcftools view --threads 1 -m2 -M2 -v snps -o {wildcards.species}.bisel.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz  &>> {log}
-		 		
 		cp {wildcards.species}.bisel.bt.vcf.gz {output.bisnp_sel} &>> {log}
 		tabix {wildcards.species}.bisel.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.bisel.bt.vcf.gz.tbi {output.bisnp_sel_index} 
-		bcftools filter --threads 1 -m+ -s+ -e'MQ<{config[MQ_less]} | QD<{config[QD_less]} | FS>{config[FS_more]} | MQRankSum<{config[MQRS_less]} | ReadPosRankSum<{config[RPRS_less]} | SOR>{config[SOR_more]} | QUAL=\".\"' -o {wildcards.species}.bifilt.bt.vcf.gz -O z MedicagoChen.bisel.bt.vcf.gz &>> {log}
-		cp {wildcards.species}.bifilt.bt.vcf.gz {output.bisnp_filt} &>> {log}
-		tabix {wildcards.species}.bifilt.bt.vcf.gz  &>> {log}
-		cp {wildcards.species}.bifilt.bt.vcf.gz.tbi {output.bisnp_filt_index} 
-		bcftools view --threads 1 -f.,PASS -o {wildcards.species}.bipassed.bt.vcf.gz -O z {wildcards.species}.bifilt.bt.vcf.gz &>> {log}
+		#run bcftools stats for unfiltered SNPs
+		#TODO: run stats plot script
+		bcftools stats -d 1,10000,10 {wildcards.species}.bisel.bt.vcf.gz >  {wildcards.species}.bisel.bt.stats
+
+		grep "^SN" {wildcards.species}.bisel.bt.stats > {wildcards.species}.SN.stats
+		grep "^AF" {wildcards.species}.bisel.bt.stats > {wildcards.species}.AF.stats
+		grep "^QUAL" {wildcards.species}.bisel.bt.stats > {wildcards.species}.QUALY.stats
+		grep "^DP" {wildcards.species}.bisel.bt.stats > {wildcards.species}.QUALY.stats
+
+		Rscript plot_bcftools_stats.R   bcftools_stats_plot.pdf 
+		#run bcftools query for GATK best practices and plot
+		bcftools query -f '%CHROM\t%POS\t%QUAL\t%INFO/MQ\t%INFO/QD\t%INFO/FS\t%INFO/MQRankSum\t%INFO/ReadPosRankSum\t%INFO/SOR\n' {wildcards.species}.bisel.bt.vcf.gz > {wildcards.species}.bisel.query 
+		Rscript plot_SNPs_GATK_best_practices.R {wildcards.species}.bisel.query {config[MQ_less]} MQ_plot.pdf {config[QD_less]} QD_plot.pdf {config[FS_more]} FS_plot.pdf {config[MQRS_less]} MQRS_plot.pdf  {config[RPRS_less]} RPRS_plot.pdf {config[SOR_more]} SOR_plot.pdf 
+		cp MQ_plot.pdf {output.plot_MQ}
+		cp QD_plot.pdf {output.plot_QD}
+		cp FS_plot.pdf {output.plot_FS}
+		cp MQRS_plot.pdf {output.plot_MQRS}
+		cp RPRS_plot.pdf {output.plot_RPRS}
+		cp SOR_plot.pdf {output.plot_SOR}
+
+		bcftools filter -m+ -s+ -e'MQ<{config[MQ_less]} | QD<{config[QD_less]} | FS>{config[FS_more]} | MQRankSum<{config[MQRS_less]} | ReadPosRankSum<{config[RPRS_less]} | SOR>{config[SOR_more]} | QUAL=\".\"'  {wildcards.species}.bisel.bt.vcf.gz |  bcftools view --threads 1 -f.,PASS -o {wildcards.species}.bipassed.bt.vcf.gz -O z &>> {log}
+		#run bcftools stats for filtered SNPs again
+
 		cp {wildcards.species}.bipassed.bt.vcf.gz {output.bisnp_passed} 
 		tabix {wildcards.species}.bipassed.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.bipassed.bt.vcf.gz.tbi {output.bisnp_passed_index} 
@@ -57,8 +85,8 @@ rule filter_bcftools_invariants:
 	output:
 		novar_sel=config["vcf_filtered"]+"/{species}.novarsel.bt.vcf.gz",# selected novariants
 		novar_sel_index=config["vcf_filtered"]+"/{species}.novarsel.bt.vcf.gz.tbi",# selected novariants
-		novar_filt=config["vcf_filtered"]+"/{species}.novarfilt.bt.vcf.gz" ,# filtered novariants
-		novar_filt_index=config["vcf_filtered"]+"/{species}.novarfilt.bt.vcf.gz.tbi" ,# filtered novariants
+		#novar_filt=config["vcf_filtered"]+"/{species}.novarfilt.bt.vcf.gz" ,# filtered novariants
+		#novar_filt_index=config["vcf_filtered"]+"/{species}.novarfilt.bt.vcf.gz.tbi" ,# filtered novariants
 		novar_passed=config["vcf_filtered"]+"/{species}.novarpass.bt.vcf.gz",  # sites that have not passed filters removed
 		novar_passed_index=config["vcf_filtered"]+"/{species}.novarpass.bt.vcf.gz.tbi"  # sites that have not passed filters removed
 	threads: 2
@@ -80,14 +108,15 @@ rule filter_bcftools_invariants:
 		cp {input} $temp_folder
 		cd $temp_folder
 		bcftools view --threads 1 -C 0 -o {wildcards.species}.novarsel.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz &>> {log}
+		bcftools stats {wildcards.species}.novarsel.bt.vcf.gz >  {wildcards.species}.novarsel.bt.stats
+		#TODO: make stats plot script!
+
+		bcftools query -f '%CHROM\t%POS\t%ALT\t%QUAL\t%INFO/DP\n' {wildcards.species}.novarsel.bt.vcf.gz > {wildcards.species}.novarsel.query 
+
 		cp {wildcards.species}.novarsel.bt.vcf.gz {output.novar_sel}
 		tabix {wildcards.species}.novarsel.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.novarsel.bt.vcf.gz.tbi {output.novar_sel_index} 
-		bcftools filter --threads 1 -m+ -s+ -e'QUAL<{config[invariantQUAL_less]} | QUAL=\".\"' -o {wildcards.species}.novarfilt.bt.vcf.gz -O z MedicagoChen.novarsel.bt.vcf.gz &>> {log}
-		cp {wildcards.species}.novarfilt.bt.vcf.gz {output.novar_filt}
-		tabix {wildcards.species}.novarfilt.bt.vcf.gz &>> {log}
-		cp {wildcards.species}.novarfilt.bt.vcf.gz.tbi {output.novar_filt_index} 
-		bcftools view --threads 1 -f.,PASS -o {wildcards.species}.novarpassed.bt.vcf.gz -O z {wildcards.species}.novarfilt.bt.vcf.gz &>> {log}
+		bcftools filter --threads 1 -m+ -s+ -e'QUAL<{config[invariantQUAL_less]} | QUAL=\".\"' {wildcards.species}.novarsel.bt.vcf.gz | bcftools view --threads 1 -f.,PASS -o {wildcards.species}.novarpassed.bt.vcf.gz -O z &>> {log}
 		cp {wildcards.species}.novarpassed.bt.vcf.gz {output.novar_passed}
 		tabix {wildcards.species}.novarpassed.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.novarpassed.bt.vcf.gz.tbi {output.novar_passed_index} 
@@ -219,7 +248,7 @@ rule bcftools_filter_gt_snps:
 		cp {wildcards.species}.bipassed.dp.bt.vcf.gz {output.bisnp_passed_dp}
 		tabix {wildcards.species}.bipassed.dp.bt.vcf.gz  &>> {log}
 		cp {wildcards.species}.bipassed.dp.bt.vcf.gz.tbi {output.bisnp_passed_dp_index}
-		bcftools view --threads 1 -R include.bed -o {wildcards.species}.bipassed.dp.m.bt.vcf.gz -O z -i 'F_MISSING<{config[gen_max_missing]}' {wildcards.species}.bipassed.dp.bt.vcf.gz &>> {log}
+		bcftools view --threads 1 -R include.bed -o {wildcards.species}.bipassed.dp.m.bt.vcf.gz -O z -i 'F_MISSING<{config[gen_max_missing]} & AN>1' {wildcards.species}.bipassed.dp.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.bipassed.dp.m.bt.vcf.gz {output.bisnp_passed_dp_m}
 		tabix {wildcards.species}.bipassed.dp.m.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.bipassed.dp.m.bt.vcf.gz.tbi {output.bisnp_passed_dp_m_index}
@@ -286,8 +315,10 @@ def make_depth_mask_mem_mb_bt(wildcards, attempt):
 def make_depth_mask_disk_mb_bt(wildcards, attempt):
 	return int(config["make_depth_mask_disk_mb"]+(config["make_depth_mask_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def make_depth_mask_runtime_bt(wildcards, attempt):
-	make_depth_mask_runtime_cats=config["make_depth_mask_runtime"].split(":")
-	return str(int(make_depth_mask_runtime_cats[0])+int(int(make_depth_mask_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+make_depth_mask_runtime_cats[1]+":"+make_depth_mask_runtime_cats[2]
+	make_depth_mask_runtime_seconds=parse_timespan(config["make_depth_mask_runtime"])
+	return str(make_depth_mask_runtime_seconds+int((make_depth_mask_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+#make_depth_mask_runtime_cats=config["make_depth_mask_runtime"].split(":")
+#	return str(int(make_depth_mask_runtime_cats[0])+int(int(make_depth_mask_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+make_depth_mask_runtime_cats[1]+":"+make_depth_mask_runtime_cats[2]
 #make depth mask->check manually if it makes sense
 rule make_depth_mask_bt:
 	input:
