@@ -1,6 +1,11 @@
+#Copy large VCF files (including variant and invariant sites) to temporary folder. If swet to 0, bcftools will read them directly from source directory
+copy_large_vcfs: 0
+
 hetmask: "None"
 gen_min_depth: 8
 gen_max_missing: 0.5
+
+
 #GATK best practices filter values
 #QD< 2
 QD_less: 2.0
@@ -14,11 +19,22 @@ MQRS_less: -12.5
 RPRS_less: -8.0
 #SOR> 3
 SOR_more: 3.0
-#Min QUAL for filtering invariant sites
-invariantQUAL_less: 15
+
+
+
+
 #default Memory for all filtering jobs
 filter_mem_mb: 32000
 #default Disk space for all filtering jobs
 filter_disk_mb: 20000
 #default runtime for all filtering jobs
 filter_runtime: "24h"
+#New invariant filtering:
+#If filter_qual=1 invariants will be filtered based on invariantQUAL_less. However, New versions of GATK don't seem to provide a QUAL score for most invariant sites. If set to 0, genotypes will be filtered based on depth nad low-depth genotypes will be set to no-call and eventually sites will be filtered based on missing data. I think it will make sense to set more stringent values here than for variants. 
+filter_qual: 0
+#Min QUAL for filtering invariant sites if filter_qual=1
+invariantQUAL_less: 15
+invariant_min_depth: 10
+invariant_max_missing: 0.1
+
+
