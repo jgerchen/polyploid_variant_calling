@@ -10,7 +10,7 @@ In the following part I will describe how to set up, configure and run the workf
 ## General idea
 This pipeline is intended to do variant calling on population genomic datasets with variable ploidy. To this there are four general steps:
 1. Indexing of reference genome
-2. Trimming of Illumina short reads, alignment and marking of PCR duplicates
+2. Trimming of Illumina short reads (can now be deactivated bysetting the option **trim_reads** to 0), alignment and marking of PCR duplicates
 3. Variant calling on the individual and population level
 4. Filtering of variant calls (either using GATK/PicardTools or Bcftools)
 
@@ -135,7 +135,7 @@ Here sample_name will determine the naming of other downstream files for each sa
 
 ##### Pre-existing directories
 
-* **fastq_dir** Directory in which raw illumina data in fastq.gz format are located. The data can be spread across multiple sub-directories and the script will find files with matching file names defined in **sample_list** recursively
+* **fastq_dir** Directory in which raw illumina data in fastq.gz format are located. The data can be spread across multiple sub-directories and the script will find files with matching file names defined in **sample_list** recursively. Now you can also define multiple directories using a pythonic list, e.g.: fastq_dir: ["/path/to/dir1", "/path/to/dir2"] 
 * **adapter_dir** directory in which sequencing adapters (used by trimmomatic) defined in **sample_list** are located
 * **cluster_code_dir** scripts that will be run at the beginning of each rule (separate scripts for each step of the pipeline). This is used to load software modules or snakemake environments on metacentrum, functionality can be deactivated by setting load_cluster_code to 0
 
