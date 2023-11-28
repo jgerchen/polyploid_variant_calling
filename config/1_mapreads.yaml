@@ -1,4 +1,5 @@
 run_fastqc: 1
+trim_reads: 1
 #default resources for rule trimmomatic
 trimmomatic_mem_mb: 32000
 trimmomatic_disk_mb: 4000

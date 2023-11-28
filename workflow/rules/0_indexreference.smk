@@ -1,5 +1,6 @@
 configfile: "../config/0_indexreference.yaml"
 
+
 rule index_reference:
 	input:
 		config["input_fasta"]

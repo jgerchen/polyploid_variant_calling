@@ -45,9 +45,15 @@ rule filter_bcftools_bisnp:
 			source {config[cluster_code_dir]}/4_filter_bcftools.sh
 		fi
 		cp scripts/plot_SNPs_GATK_best_practices.R $temp_folder 
-		cp {input} $temp_folder
 		cd $temp_folder
-		bcftools view --threads 1 -m2 -M2 -v snps -o {wildcards.species}.bisel.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz  &>> {log}
+
+		if [ {config[copy_large_vcfs]} -eq 1 ]
+		then
+			cp {input} $temp_folder
+			bcftools view --threads 1 -m2 -M2 -v snps -o {wildcards.species}.bisel.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz  &>> {log}
+		else
+			bcftools view --threads 1 -m2 -M2 -v snps -o {wildcards.species}.bisel.bt.vcf.gz -O z {input}  &>> {log}
+		fi
 		cp {wildcards.species}.bisel.bt.vcf.gz {output.bisnp_sel} &>> {log}
 		tabix {wildcards.species}.bisel.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.bisel.bt.vcf.gz.tbi {output.bisnp_sel_index} 
@@ -60,7 +66,8 @@ rule filter_bcftools_bisnp:
 		grep "^QUAL" {wildcards.species}.bisel.bt.stats > {wildcards.species}.QUALY.stats
 		grep "^DP" {wildcards.species}.bisel.bt.stats > {wildcards.species}.QUALY.stats
 
-		Rscript plot_bcftools_stats.R   bcftools_stats_plot.pdf 
+		#TODO: make script?
+		#Rscript plot_bcftools_stats.R   bcftools_stats_plot.pdf 
 		#run bcftools query for GATK best practices and plot
 		bcftools query -f '%CHROM\t%POS\t%QUAL\t%INFO/MQ\t%INFO/QD\t%INFO/FS\t%INFO/MQRankSum\t%INFO/ReadPosRankSum\t%INFO/SOR\n' {wildcards.species}.bisel.bt.vcf.gz > {wildcards.species}.bisel.query 
 		Rscript plot_SNPs_GATK_best_practices.R {wildcards.species}.bisel.query {config[MQ_less]} MQ_plot.pdf {config[QD_less]} QD_plot.pdf {config[FS_more]} FS_plot.pdf {config[MQRS_less]} MQRS_plot.pdf  {config[RPRS_less]} RPRS_plot.pdf {config[SOR_more]} SOR_plot.pdf 
@@ -77,6 +84,42 @@ rule filter_bcftools_bisnp:
 		cp {wildcards.species}.bipassed.bt.vcf.gz {output.bisnp_passed} 
 		tabix {wildcards.species}.bipassed.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.bipassed.bt.vcf.gz.tbi {output.bisnp_passed_index} 
+		"""
+#TODO filter multivariants
+rule filter_bcftools_multivariants:
+	input:
+		config["vcf_dir"]+"/{species}.merged.vcf.gz"
+	output:
+		#all multivariant sites
+		multivar_all=config["vcf_filtered"]+"/{species}.multivar.bt.vcf.gz",
+		#sites where a multivariate site has a low-frequency complex variant, covering a SNP
+		#multivar_bisel=
+	threads: 2
+	resources:
+		mem_mb=filter_bcftools_mem_mb,
+		disk_mb=filter_bcftools_disk_mb,
+		runtime=filter_bcftools_runtime
+	log:
+		config["log_dir"]+"/filter_bisnp_bcftools_{species}.log"
+	shell:
+		"""
+		temp_folder={config[temp_dir]}/filter_bcftools_multivariant_{wildcards.species}
+		mkdir -p $temp_folder
+		trap 'rm -rf $temp_folder' TERM EXIT
+		if [ {config[load_cluster_code]} -eq 1 ]
+		then
+			source {config[cluster_code_dir]}/4_filter_bcftools.sh
+		fi
+		cd $temp_folder
+		if [ {config[copy_large_vcfs]} -eq 1 ]
+		then
+			cp {input} $temp_folder
+			bcftools view --threads 1 -m3 -o {wildcards.species}.multivar.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz  &>> {log}
+		else
+			bcftools view --threads 1 -m3 -o {wildcards.species}.multivar.bt.vcf.gz -O z {input} &>> {log}
+		#select multi-allelic sites (either type)
+		#split multiallelic sites, retain only bi-allelic SNP and set other types of variants to no-call
+		#bcftools norm 	
 		"""
 
 rule filter_bcftools_invariants:
@@ -105,18 +148,28 @@ rule filter_bcftools_invariants:
 		then
 			source {config[cluster_code_dir]}/4_filter_bcftools.sh
 		fi
-		cp {input} $temp_folder
 		cd $temp_folder
-		bcftools view --threads 1 -C 0 -o {wildcards.species}.novarsel.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz &>> {log}
+		if [ {config[copy_large_vcfs]} -eq 1 ]
+		then
+			cp {input} $temp_folder
+			bcftools view --threads 1 -C 0 -o {wildcards.species}.novarsel.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz &>> {log}
+		else
+			bcftools view --threads 1 -C 0 -o {wildcards.species}.novarsel.bt.vcf.gz -O z {input} &>> {log}
+		fi
 		bcftools stats {wildcards.species}.novarsel.bt.vcf.gz >  {wildcards.species}.novarsel.bt.stats
 		#TODO: make stats plot script!
-
-		bcftools query -f '%CHROM\t%POS\t%ALT\t%QUAL\t%INFO/DP\n' {wildcards.species}.novarsel.bt.vcf.gz > {wildcards.species}.novarsel.query 
+		#bcftools query -f '%CHROM\t%POS\t%ALT\t%QUAL\t%INFO/DP\n' {wildcards.species}.novarsel.bt.vcf.gz > {wildcards.species}.novarsel.query 
 
 		cp {wildcards.species}.novarsel.bt.vcf.gz {output.novar_sel}
 		tabix {wildcards.species}.novarsel.bt.vcf.gz &>> {log}
-		cp {wildcards.species}.novarsel.bt.vcf.gz.tbi {output.novar_sel_index} 
-		bcftools filter --threads 1 -m+ -s+ -e'QUAL<{config[invariantQUAL_less]} | QUAL=\".\"' {wildcards.species}.novarsel.bt.vcf.gz | bcftools view --threads 1 -f.,PASS -o {wildcards.species}.novarpassed.bt.vcf.gz -O z &>> {log}
+		cp {wildcards.species}.novarsel.bt.vcf.gz.tbi {output.novar_sel_index}
+		#TODO: test if this works!
+		if [ {config[filter_qual]} -eq 1 ]
+		then
+			bcftools filter --threads 1 -m+ -s+ -e'QUAL<{config[invariantQUAL_less]} | QUAL=\".\"' {wildcards.species}.novarsel.bt.vcf.gz | bcftools view --threads 1 -f.,PASS| bcftools filter --threads 1 -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . | bcftools view--threads 1 -i 'F_MISSING<{config[invariant_max_missing]}' -o {wildcards.species}.novarpassed.bt.vcf.gz -O z &>> {log}
+		else
+			bcftools filter --threads 1 -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . {wildcards.species}.novarsel.bt.vcf.gz | bcftools view--threads 1 -i 'F_MISSING<{config[invariant_max_missing]}' -o {wildcards.species}.novarpassed.bt.vcf.gz -O z &>> {log}
+		fi
 		cp {wildcards.species}.novarpassed.bt.vcf.gz {output.novar_passed}
 		tabix {wildcards.species}.novarpassed.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.novarpassed.bt.vcf.gz.tbi {output.novar_passed_index} 

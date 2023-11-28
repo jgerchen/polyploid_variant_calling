@@ -12,9 +12,15 @@ with open(config["sample_list"]) as sample_list:
 		sample_cats=line.strip().split("\t")
 		sample_libs=[]
 		for s_cat_multiple in sample_cats[1].split(","):
-			sample_glob=glob.glob(config["fastq_dir"]+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
-			if len(sample_glob)>0:
-				sample_libs=list(set(sample_libs).union(set(sample_glob)))
+			if type(config["fastq_dir"])==str:
+				sample_glob=glob.glob(config["fastq_dir"]+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
+				if len(sample_glob)>0:
+					sample_libs=list(set(sample_libs).union(set(sample_glob)))
+			elif type(config["fastq_dir"]) in {list, tuple}:
+				for fastq_dir  in config["fastq_dir"]:
+					sample_glob=glob.glob(fastq_dir+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
+					if len(sample_glob)>0:
+						sample_libs=list(set(sample_libs).union(set(sample_glob)))
 		assert len(sample_libs)>=2, "There have to be at least 2 libraries per sample, however sample %s only has %s." % (sample_cats[0], len(sample_libs))
 		r1_re=re.compile(".*R1.*")
 		samples_r1=list(filter(r1_re.match, sample_libs))
@@ -149,10 +155,10 @@ rule map_reads:
 		reference_fai=config["fasta_dir"]+"/{species}.fasta.fai",
 		reference_pac=config["fasta_dir"]+"/{species}.fasta.pac",
 		reference_sa=config["fasta_dir"]+"/{species}.fasta.sa",
-		fwd_reads_trimmed=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_R1.fastq.gz",
-		fwd_reads_unpaired=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_U1.fastq.gz",
-		rev_reads_trimmed=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_R2.fastq.gz",
-		rev_reads_unpaired=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_U2.fastq.gz",
+		fwd_reads_trimmed=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_R1.fastq.gz" if config["trim_reads"]==True else get_fwd_reads,
+		fwd_reads_unpaired=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_U1.fastq.gz" if config["trim_reads"]==True else [],
+		rev_reads_trimmed=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_R2.fastq.gz" if config["trim_reads"]==True else get_rev_reads,
+		rev_reads_unpaired=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_U2.fastq.gz" if config["trim_reads"]==True else []
 
 	output:
 		bam_out=config["bam_dir"]+"/{species}_{sample}_{lib}.bam",
@@ -180,9 +186,14 @@ rule map_reads:
 		fwd_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads_unpaired})
 		rev_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads_unpaired})
 		bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta  $fwd_reads $rev_reads | samtools sort - | samtools view -bh -o aligned_pe.bam &>> {log}
-		bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $fwd_reads_unp | samtools sort - | samtools view -bh -o aligned_fwd_unp.bam &>> {log}
-		bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $rev_reads_unp | samtools sort - | samtools view -bh -o aligned_rev_unp.bam &>> {log}
-		samtools merge aligned_merged.bam aligned_pe.bam aligned_fwd_unp.bam aligned_rev_unp.bam
+		if [ {config[trim_reads]} = 1 ]
+		then
+			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $fwd_reads_unp | samtools sort - | samtools view -bh -o aligned_fwd_unp.bam &>> {log}
+			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $rev_reads_unp | samtools sort - | samtools view -bh -o aligned_rev_unp.bam &>> {log}
+			samtools merge aligned_merged.bam aligned_pe.bam aligned_fwd_unp.bam aligned_rev_unp.bam
+		else
+			mv aligned_pe.bam aligned_merged.bam
+		fi
 		samtools index aligned_merged.bam
 		cp aligned_merged.bam {output.bam_out}
 		cp aligned_merged.bam.bai {output.bam_index}

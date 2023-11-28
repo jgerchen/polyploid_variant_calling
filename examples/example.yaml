@@ -6,7 +6,7 @@ sub_intervals: "/storage/brno2/home/gerchenj/Medicago/Medicago_intervals.lst"
 fourfold: "None"
 #Pre-existing directories
 fastq_dir: "/storage/brno12-cerit/home/filip_kolar/brno3/ERC/raw_data"
-adapter_dir: "/storage/brno2/home/gerchenj/fastqtovcf/resources/adapters"
+adapter_dir: "/storage/brno12-cerit/home/filip_kolar/brno3/600_genomes/adapters/"
 #New directories for output
 fasta_dir: "/storage/brno2/home/gerchenj/Medicago/chen_fasta"
 fastqc_dir: "/storage/brno2/home/gerchenj/Medicago/chen_fastqc"
