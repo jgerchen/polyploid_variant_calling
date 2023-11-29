@@ -39,7 +39,10 @@ rule index_reference:
 			gunzip $ref
 			ref=${{ref%.gz}}
 		fi
-		mv $ref {wildcards.species}.fasta
+		if ![ -f  {wildcards.species}.fasta ]
+		then
+			mv $ref {wildcards.species}.fasta
+		fi
 		java -jar $PICARD CreateSequenceDictionary R={wildcards.species}.fasta O={wildcards.species}.dict &>> {log}
 		samtools faidx {wildcards.species}.fasta &>> {log}
 		bwa index {wildcards.species}.fasta &>> {log}
