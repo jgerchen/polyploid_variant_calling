@@ -5,6 +5,7 @@ sample_ploidies: "/storage/brno2/home/gerchenj/Medicago/Medicago_sample_ploidies
 sub_intervals: "/storage/brno2/home/gerchenj/Medicago/Medicago_intervals.lst"
 fourfold: "None"
 #Pre-existing directories
+cluster_code_dir: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_ccode"
 fastq_dir: "/storage/brno12-cerit/home/filip_kolar/brno3/ERC/raw_data"
 adapter_dir: "/storage/brno12-cerit/home/filip_kolar/brno3/600_genomes/adapters/"
 #New directories for output
@@ -16,7 +17,6 @@ gvcf_dir: "/storage/brno2/home/gerchenj/Medicago/chen_gvcf"
 vcf_dir: "/storage/brno2/home/gerchenj/Medicago/chen_vcf"
 vcf_filtered: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_vcf_filtered"
 log_dir: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_log"
-cluster_code_dir: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_ccode"
 depthmask_dir: "/storage/brno2/home/gerchenj/Medicago/chen_depth_mask"
 report_dir: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_report"
 
