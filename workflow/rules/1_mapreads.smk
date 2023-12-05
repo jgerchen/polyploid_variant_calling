@@ -111,7 +111,7 @@ rule trimmomatic:
 		cd $temp_folder
 		fwd_reads=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads})
 		rev_reads=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads})
-		if [ {config[run_fastqc]} = 1 ]
+		if [ {config[run_fastqc]} -eq 1 ]
 		then
 			mkdir fastqc_pre_out
 			fastqc -o fastqc_pre_out -t {threads} -f fastq  *.fastq.gz &>>{log}
@@ -121,7 +121,7 @@ rule trimmomatic:
 
 		adapter_file=$(awk -F/ '{{print $NF}}' <<< {input.adapter_file} )
 		trimmomatic PE -threads {threads} -trimlog trimmomatic.log $fwd_reads $rev_reads output_forward_paired.fq.gz output_forward_unpaired.fq.gz output_reverse_paired.fq.gz output_reverse_unpaired.fq.gz ILLUMINACLIP:$adapter_file:2:23:10 TRAILING:15 SLIDINGWINDOW:4:15 MINLEN:50 &>> {log}
-		if [ {config[run_fastqc]} = 1 ]
+		if [ {config[run_fastqc]} = -eq 1 ]
 		then
 			mkdir fastqc_post_out
 			fastqc -o fastqc_post_out -t {threads} -f fastq  output_{{forward,reverse}}_{{paired,unpaired}}.fq.gz
@@ -186,7 +186,7 @@ rule map_reads:
 		fwd_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads_unpaired})
 		rev_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads_unpaired})
 		bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta  $fwd_reads $rev_reads | samtools sort - | samtools view -bh -o aligned_pe.bam &>> {log}
-		if [ {config[trim_reads]} = "1" ]
+		if [ {config[trim_reads]} -eq 1 ]
 		then
 			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $fwd_reads_unp | samtools sort - | samtools view -bh -o aligned_fwd_unp.bam &>> {log}
 			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $rev_reads_unp | samtools sort - | samtools view -bh -o aligned_rev_unp.bam &>> {log}
@@ -195,7 +195,7 @@ rule map_reads:
 			mv aligned_pe.bam aligned_merged.bam
 		fi
 		samtools index aligned_merged.bam
-		mkdir -p config[bam_dir]
+		mkdir -p {config[bam_dir]}
 		cp aligned_merged.bam {output.bam_out}
 		cp aligned_merged.bam.bai {output.bam_index}
 		"""
