@@ -183,11 +183,11 @@ rule map_reads:
 		cd $temp_folder
 		fwd_reads=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads_trimmed})
 		rev_reads=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads_trimmed})
-		fwd_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads_unpaired})
-		rev_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads_unpaired})
 		bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta  $fwd_reads $rev_reads | samtools sort - | samtools view -bh -o aligned_pe.bam &>> {log}
 		if [ {config[trim_reads]} -eq 1 ]
 		then
+			fwd_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads_unpaired})
+			rev_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads_unpaired})
 			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $fwd_reads_unp | samtools sort - | samtools view -bh -o aligned_fwd_unp.bam &>> {log}
 			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $rev_reads_unp | samtools sort - | samtools view -bh -o aligned_rev_unp.bam &>> {log}
 			samtools merge aligned_merged.bam aligned_pe.bam aligned_fwd_unp.bam aligned_rev_unp.bam
