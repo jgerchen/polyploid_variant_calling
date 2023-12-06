@@ -121,7 +121,7 @@ rule trimmomatic:
 
 		adapter_file=$(awk -F/ '{{print $NF}}' <<< {input.adapter_file} )
 		trimmomatic PE -threads {threads} -trimlog trimmomatic.log $fwd_reads $rev_reads output_forward_paired.fq.gz output_forward_unpaired.fq.gz output_reverse_paired.fq.gz output_reverse_unpaired.fq.gz ILLUMINACLIP:$adapter_file:2:23:10 TRAILING:15 SLIDINGWINDOW:4:15 MINLEN:50 &>> {log}
-		if [ {config[run_fastqc]} = -eq 1 ]
+		if [ {config[run_fastqc]} -eq 1 ]
 		then
 			mkdir fastqc_post_out
 			fastqc -o fastqc_post_out -t {threads} -f fastq  output_{{forward,reverse}}_{{paired,unpaired}}.fq.gz
