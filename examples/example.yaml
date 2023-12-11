@@ -20,4 +20,3 @@ log_dir: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_log"
 depthmask_dir: "/storage/brno2/home/gerchenj/Medicago/chen_depth_mask"
 report_dir: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_report"
 
-

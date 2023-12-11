@@ -9,7 +9,7 @@ configfile: "../config/1_mapreads.yaml"
 sample_dict={}
 with open(config["sample_list"]) as sample_list:
 	for line in sample_list:
-		sample_cats=line.strip().split("\t")
+		sample_cats=line.strip().split()
 		sample_libs=[]
 		for s_cat_multiple in sample_cats[1].split(","):
 			if type(config["fastq_dir"])==str:
@@ -120,7 +120,7 @@ rule trimmomatic:
 		fi
 
 		adapter_file=$(awk -F/ '{{print $NF}}' <<< {input.adapter_file} )
-		trimmomatic PE -threads {threads} -trimlog trimmomatic.log $fwd_reads $rev_reads output_forward_paired.fq.gz output_forward_unpaired.fq.gz output_reverse_paired.fq.gz output_reverse_unpaired.fq.gz ILLUMINACLIP:$adapter_file:2:23:10 TRAILING:15 SLIDINGWINDOW:4:15 MINLEN:50 &>> {log}
+		trimmomatic PE -threads {threads} -trimlog trimmomatic.log $fwd_reads $rev_reads output_forward_paired.fq.gz output_forward_unpaired.fq.gz output_reverse_paired.fq.gz output_reverse_unpaired.fq.gz HEADCROP:{config[trimmomatic_headcrop]} ILLUMINACLIP:$adapter_file:{config[trimmomatic_clip_seedmismatches]}:{config[trimmomatic_clip_palindromethresh]}:{config[trimmomatic_clip_simplethresh]} TRAILING:{config[trimmomatic_trailing]} LEADING:{config[trimmomatic_leading]}  SLIDINGWINDOW:{config[trimmomatic_slidingw_size]}:{config[trimmomatic_slidingw_qual]} MINLEN:{config[trimmomatic_minlen]} &>> {log}
 		if [ {config[run_fastqc]} -eq 1 ]
 		then
 			mkdir fastqc_post_out

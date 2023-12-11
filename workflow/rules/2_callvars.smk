@@ -3,7 +3,7 @@ configfile: "../config/2_callvars.yaml"
 
 
 with open(config["sub_intervals"]) as interval_file:
-	interval_list=[i.strip().split("\t")[0] for i in interval_file]
+	interval_list=[i.strip().split()[0] for i in interval_file]
 ###DO not use too slow.
 #rule haplotypecaller:
 #	input:
@@ -138,7 +138,7 @@ def GenomicsDBimportSub_mem_mb(wildcards, attempt):
 def GenomicsDBimportSub_disk_mb(wildcards, attempt):
 	return int(config["GenomicsDBimportSub_disk_mb"]+(config["GenomicsDBimportSub_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def GenomicsDBimportSub_runtime(wildcards, attempt):
-	GenomicsDBImportSub_runtime_seconds=parse_timespan(config["GenomicsDBImportSub_runtime"])
+	GenomicsDBImportSub_runtime_seconds=parse_timespan(config["GenomicsDBimportSub_runtime"])
 	return str(GenomicsDBImportSub_runtime_seconds+int((GenomicsDBImportSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
 #GenomicsDBimportSub_runtime_cats=config["GenomicsDBimportSub_runtime"].split(":")
 #	return str(int(GenomicsDBimportSub_runtime_cats[0])+int(int(GenomicsDBimportSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+GenomicsDBimportSub_runtime_cats[1]+":"+GenomicsDBimportSub_runtime_cats[2]

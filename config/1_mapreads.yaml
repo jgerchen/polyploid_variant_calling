@@ -1,5 +1,27 @@
 run_fastqc: 1
 trim_reads: 1
+#additional options for trimmomatic
+#Cut N bases at the beginning of the read. Standard value does nothing
+trimmomatic_headcrop: 0
+#Adapter clipping options
+#specifies the maximum mismatch count which will still allow a full match to be performed
+trimmomatic_clip_seedmismatches: 2
+#specifies how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment.
+trimmomatic_clip_palindromethresh: 30
+#specifies how accurate the match between any adapter etc. sequence must be against a read.
+trimmomatic_clip_simplethresh: 10
+#Other trimming steps
+#Remove leading below this quality
+trimmomatic_trailing: 15
+#Remove trailing below this quality
+trimmomatic_leading: 15
+#Width of sliding window
+trimmomatic_slidingw_size: 4
+#Cutting when the average quality per base drops below this
+trimmomatic_slidingw_qual: 15
+#Drop reads below this length
+trimmomatic_minlen: 50
+
 #default resources for rule trimmomatic
 trimmomatic_mem_mb: 32000
 trimmomatic_disk_mb: 4000

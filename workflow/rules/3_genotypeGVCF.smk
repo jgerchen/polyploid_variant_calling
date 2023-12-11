@@ -8,7 +8,7 @@ def GenotypeGenomicsDBSub_disk_mb(wildcards, attempt):
 	return int(config["GenotypeGenomicsDBSub_disk_mb"]+(config["GenotypeGenomicsDBSub_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def GenotypeGenomicsDBSub_runtime(wildcards, attempt):
 	GenotypeGenomicsDBSub_runtime_seconds=parse_timespan(config["GenotypeGenomicsDBSub_runtime"])
-	return str(GenotypeGenomicsDBSub_runtime_seconds+int((GenotypeGenomicsSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(GenotypeGenomicsDBSub_runtime_seconds+int((GenotypeGenomicsDBSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
 	#	GenotypeGenomicsDBSub_runtime_cats=config["GenotypeGenomicsDBSub_runtime"].split(":")
 #	return str(int(GenotypeGenomicsDBSub_runtime_cats[0])+int(int(GenotypeGenomicsDBSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+GenotypeGenomicsDBSub_runtime_cats[1]+":"+GenotypeGenomicsDBSub_runtime_cats[2]
 rule GenotypeGenomicsDBSub:
