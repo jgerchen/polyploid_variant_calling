@@ -81,12 +81,10 @@ I can activate the Conda environment using
 ```
 source yourcondadir/bin/activate gatk4
 ```
-It can also be convenient to install the Java runtime environment into this conda environment by using
+With the activated conda environment, GATK4 can be run using the "gatk" wrapper script in the extracted GATK4 folder. From GATK4 v.4.4.0.0 Java v.17 or higher is required. On metaCentrum this can be loaded using
 ```
-mamba install -c conda-forge openjdk
+module load openjdk
 ```
-With the activated conda environment, GATK4 can be run using the "gatk" wrapper script in the extracted GATK4 folder
-
 ### Installing other software
 
 This workflow uses a bunch of other software packages, which are available as modules on MetaCentrum. Specifically, for each part of the workflow they are:
