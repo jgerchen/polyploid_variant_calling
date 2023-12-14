@@ -267,9 +267,9 @@ rule merge_bams_deduplicate:
 		Rscript plot_flagstats.R all_merged.flagstat.tsv {wildcards.sample} {wildcards.species}_{wildcards.sample}.flagstats.pdf
 		cp {wildcards.species}_{wildcards.sample}.flagstats.pdf {output.stats_flagstat_plot}
 		samtools stats all_merged.dedup.bam > all_merged.stats
+		cp all_merged.stats {output.stats_stat}
 		mkdir plot_stats
 		plot-bamstats -p plot_stats/{wildcards.species}_{wildcards.sample} all_merged.stats
-		cp all_merged.stats {output.stats_stat}
 		mkdir -p {config[report_dir]}/merge_bams_dedup/plot_bamstats 
 		cp plot_stats/{wildcards.species}_{wildcards.sample}-acgt-cycles.png {output.stats_plot_acgt_cycles}
 		cp plot_stats/{wildcards.species}_{wildcards.sample}-coverage.png {output.stats_plot_coverage}

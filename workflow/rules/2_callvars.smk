@@ -100,7 +100,7 @@ rule hapcallerSub:
 		ref_fasta_fai=config["fasta_dir"]+"/{species}.fasta.fai"
 	output:
 		gvcf_out=config["gvcf_dir"]+"/{species}_{sample}_{sub}.gvcf.gz"
-	threads: 4
+	threads: 2
 	resources:
 		mem_mb=hapcallerSub_mem_mb,
 		disk_mb=hapcallerSub_disk_mb,
