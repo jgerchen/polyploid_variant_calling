@@ -224,17 +224,17 @@ rule merge_bams_deduplicate:
 		#stats_flagstat_table=report(config["report_dir"]+"/merge_bams_dedup/table_flagstats/{species}_{sample}.rst", category="Merge bams and deduplicate", subcategory="Flagstat table", labels={"Sample":"{sample}"}),
 		stats_flagstat_plot=report(config["report_dir"]+"/merge_bams_dedup/plot_flagstats/{species}_{sample}.flagstats.pdf", category="Merge bams and deduplicate", subcategory="Flagstat plot", labels={"Sample":"{sample}"}),
 		stats_stat=config["report_dir"]+"/merge_bams_dedup/{species}_{sample}.stats",
-		stats_plot_acgt_cycles=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_agct_cycles.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"ACGT content per cycle"}),
-		stats_plot_coverage=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_coverage.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Coverage plot"}),
-		stats_plot_gc_content=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_gc_content.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"GC content"}),
-		stats_plot_gc_depth=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_gc_depth.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Mapped depth vs. GC"}),
-		stats_plot_indel_cycles=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_indel_cycles.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Indels per cycle"}),
-		stats_plot_indel_dist=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_indel_dist.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Indel lengths"}),
-		stats_plot_insert_size=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_insert_size.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Insert size"}),
-		stats_plot_quals=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle"}),
-		stats_plot_quals_hm=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals_hm.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle 2D plot"}),
-		stats_plot_quals2=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals2.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle Plot 2"}),
-		stats_plot_quals3=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals3.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle Plot 3"}),
+		stats_plot_acgt_cycles=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_agct_cycles.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"ACGT content per cycle"}) if config["plot_bamstats"]==True else [],
+		stats_plot_coverage=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_coverage.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Coverage plot"}) if config["plot_bamstats"]==True else [],
+		stats_plot_gc_content=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_gc_content.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"GC content"}) if config["plot_bamstats"]==True else [],
+		stats_plot_gc_depth=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_gc_depth.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Mapped depth vs. GC"}) if config["plot_bamstats"]==True else [],
+		stats_plot_indel_cycles=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_indel_cycles.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Indels per cycle"}) if config["plot_bamstats"]==True else [],
+		stats_plot_indel_dist=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_indel_dist.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Indel lengths"})  if config["plot_bamstats"]==True else [],
+		stats_plot_insert_size=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_insert_size.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Insert size"})  if config["plot_bamstats"]==True else [],
+		stats_plot_quals=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle"})  if config["plot_bamstats"]==True else [],
+		stats_plot_quals_hm=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals_hm.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle 2D plot"})  if config["plot_bamstats"]==True else [],
+		stats_plot_quals2=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals2.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle Plot 2"}) if config["plot_bamstats"]==True else [],
+		stats_plot_quals3=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals3.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle Plot 3"})  if config["plot_bamstats"]==True else [],
 		
 	threads: 2
 	resources:
@@ -268,20 +268,24 @@ rule merge_bams_deduplicate:
 		cp {wildcards.species}_{wildcards.sample}.flagstats.pdf {output.stats_flagstat_plot}
 		samtools stats all_merged.dedup.bam > all_merged.stats
 		cp all_merged.stats {output.stats_stat}
-		mkdir plot_stats
-		plot-bamstats -p plot_stats/{wildcards.species}_{wildcards.sample} all_merged.stats
-		mkdir -p {config[report_dir]}/merge_bams_dedup/plot_bamstats 
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-acgt-cycles.png {output.stats_plot_acgt_cycles}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-coverage.png {output.stats_plot_coverage}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-gc-content.png {output.stats_plot_gc_content}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-gc-depth.png {output.stats_plot_gc_depth}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-indel-cycles.png {output.stats_plot_indel_cycles}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-indel-dist.png {output.stats_plot_indel_dist}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-insert-size.png {output.stats_plot_insert_size}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-quals.png {output.stats_plot_quals}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-quals-hm.png {output.stats_plot_quals_hm}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-quals2.png {output.stats_plot_quals2}
-		cp plot_stats/{wildcards.species}_{wildcards.sample}-quals3.png {output.stats_plot_quals3}
+		if [ {config[plot_bamstats]} -eq 1 ]
+		then
+
+			mkdir plot_stats
+			plot-bamstats -p plot_stats/{wildcards.species}_{wildcards.sample} all_merged.stats
+			mkdir -p {config[report_dir]}/merge_bams_dedup/plot_bamstats 
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-acgt-cycles.png {output.stats_plot_acgt_cycles}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-coverage.png {output.stats_plot_coverage}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-gc-content.png {output.stats_plot_gc_content}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-gc-depth.png {output.stats_plot_gc_depth}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-indel-cycles.png {output.stats_plot_indel_cycles}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-indel-dist.png {output.stats_plot_indel_dist}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-insert-size.png {output.stats_plot_insert_size}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-quals.png {output.stats_plot_quals}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-quals-hm.png {output.stats_plot_quals_hm}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-quals2.png {output.stats_plot_quals2}
+			cp plot_stats/{wildcards.species}_{wildcards.sample}-quals3.png {output.stats_plot_quals3}
+		fi	
 		cp all_merged.bam {output.merged}
 		cp all_merged.bam.bai {output.merged_index}
 		cp all_merged.dedup.bam {output.merged_dedup}

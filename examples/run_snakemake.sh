@@ -19,7 +19,13 @@ cd /storage/brno2/home/gerchenj/polyploid_variant_calling/workflow
 ### You will also have to change the paths to --configfile and --profile to point to the pathsin your own home directory
 ### You can leave the options -j (number of parallel jobs submitted at the same time) --max-status-checks-per-seconds (frequency at which Snakemake queries the job status) as they are 
 
-snakemake  /storage/brno2/home/gerchenj/snakemake_course/bam/alnus_AG001c.merged.dedup.bam /storage/brno2/home/gerchenj/snakemake_course/bam/alnus_AG002c.merged.dedup.bam --configfile /storage/brno2/home/gerchenj/snakemake_course/alnus_dtol.yaml --profile /storage/brno2/home/gerchenj/.config/snakemake/snakemake_metacentrum -j 100 --max-status-checks-per-second 1 
+#snakemake  /storage/brno2/home/gerchenj/snakemake_course/bam/alnus_AG00{1..3}c.merged.dedup.bam --configfile /storage/brno2/home/gerchenj/snakemake_course/alnus_dtol.yaml --profile snakemake_metacentrum -j 100 --max-status-checks-per-second 1 
+
+
+#This is the snakemake command for variant calling. It will call variants for all individuals in the samples list. The option --rerun-triggers mtime ensures that Snakemake will only generate output files that do not exist yet, since it likes to rerun Rules where the code has been modified.
+
+snakemake  /storage/brno2/home/gerchenj/snakemake_course/vcf/alnus.merged.vcf.gz --configfile /storage/brno2/home/gerchenj/snakemake_course/alnus_dtol.yaml --profile snakemake_metacentrum -j 100 --max-status-checks-per-second 1 --rerun-triggers mtime
+
 
 # clean the SCRATCH directory
 clean_scratch

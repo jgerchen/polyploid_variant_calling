@@ -1,5 +1,6 @@
 run_fastqc: 1
 trim_reads: 1
+plot_bamstats: 1
 #additional options for trimmomatic
 #Cut N bases at the beginning of the read. Standard value does nothing
 trimmomatic_headcrop: 0
