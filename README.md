@@ -3,7 +3,7 @@
 This pipeline takes raw, paired-end Illumina reads of genomic datasets from plant populations with variable ploidy, aligns them against a (diploid) reference genome using BWA and does variant calling and filtering of results using GATK4. This variant calling workflow is similar to the [Fastq-to-vcf pipeline](https://github.com/vlkofly/Fastq-to-vcf) by Jakub Vlcek, however it implements a number of changes including:
 * [GATK4](https://www.broadinstitute.org/news/broad-institute-releases-open-source-gatk4-software-genome-analysis-optimized-speed-and) instead of GATK3
 * use of [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow system instead of a collection of Python/Bash scripts
-* optional alternative filtering pipeline using bcftools instead of GATK
+* alternative filtering pipeline using bcftools instead of GATK
 
 In the following part I will describe how to set up, configure and run the workflow on HPC computing clusters, both in general and specifically for users of the czech national computing infrastructure [MetaCentrum](https://metavo.metacentrum.cz/).
 
@@ -23,7 +23,7 @@ The workflow needs a number of software packages. Depending on your cluster conf
 
 ### Installing Snakemake
 
-Snakemake may be installed via [conda or Pip](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html). Make sure to install a recent version of Snakemake, since Snakemake is under continuous development and some of the features used in this workflow may not be supported by older Snakemake versions.
+Snakemake may be installed via [conda or Pip](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html). Currently this workflow runs with Snakemake v.7, v.8 is not supported yet.
 #### On MetaCentrum:
 
 I installed Snakemake using a local Conda installation. First I dowloaded a minimal Conda installation (with the mamba package solver already preinstalled) [here](https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh) using
@@ -49,9 +49,9 @@ This environment is activated using
 ```
 conda activate Snakemake
 ```
-Install Snakemake using [mamba](https://github.com/mamba-org/mamba)
+Install Snakemake v.7 using [mamba](https://github.com/mamba-org/mamba)
 ```
-mamba install -c bioconda snakemake
+mamba install -c bioconda snakemake=7.32.4
 ```
 After this you can also directly activate the Snakemake environment using
 ```
@@ -100,6 +100,7 @@ This workflow uses a bunch of other software packages, which are available as mo
 * PicardTools
 * fastQC (optional)
 * R
+
 For estimating mean depth of bam files and for generating genome-wide estimates this workflow uses [PanDepth](https://github.com/HuiyangYu/PanDepth). PanDepth is very fast, but there is neither a Conda package nor a module on MetaCentrum. However, you can download [pre-build binaries](https://github.com/HuiyangYu/PanDepth/releases). After extracting them, you'll have to set the path to the binary by setting the *PANDEPTH* path in your prerun_script (1_mapreads.sh). 
 
 2. Variant calling on the individual level
@@ -114,7 +115,8 @@ For estimating mean depth of bam files and for generating genome-wide estimates 
 * matplotlib
 * bedops
 * Bedtools
-For having a recent version of matplotlib on Metacentrum, it is recommended to create a COnda environment for the filtering step and install the dependencies using
+
+For having a recent version of matplotlib on Metacentrum, it is recommended to create a Conda environment for the filtering step and install the dependencies using
 
 ```
 mamba install -c bioconda bcftools numpy matplotlib bedops bedtools
@@ -161,6 +163,7 @@ The column adapter_file determines the name of the adapter file used for trimmom
 * **log_dir** log files (direct output of stdout and/or stderr or rules and shell scripts) will be put here
 * **depthmask_dir** location where the [depthmask script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask) will put the deptmask bed and additional output files
 * **report_dir** location where additional plots and stats are saved, which can later be used to generate a [Snakemake report](https://snakemake.readthedocs.io/en/stable/snakefiles/reporting.html), although I did not implement extensive plotting functions for all of the rules yet
+* **sample_read_file** This is a tab-separated file that collects information from samples, libraries, fastq-files, adapter files and ploidy. This file is generated based on your **sample_list** by running the rule **get_sample_reads**, however you may want to check it to see if forward and reverse reads are assigned correctly to libraries and you can edit it by hand if something went wrong. 
 
 #### Pre-run scripts
 
@@ -208,11 +211,17 @@ You can generate any intermediate files that are defined in output directive of 
 ### 0_index_reference
 * **config[fasta_dir]/{species}.fasta** Renamed copy of the reference genome defined by **input\_fasta**
 * **config[fasta_dir]/{species}.dict/.fasta.amb/.ann/.bwt/.fai/.pac/.sa** various indexes generated by BWA, samtools and PICARD tools
+
 ### 1_mapreads
 * **config[fastq_trimmed_dir]/{sample}\_{lib}\_trimmed\_R1/R2/U1/U2.fastq.gz** Reads trimmed using trimmomatic with R1 and R2 for paired forward or reverse reads and U1 and U2 for unpaired forward and reverse reads
 * **config[bam_dir]/{species}\_{sample}\_{lib}.bam** Aligned reads of a single PE library {lib} for a single individual {sample}
 * **config[bam_dir]/{species}\_{sample}.merged.bam** Merged alignment of all libraries for a single individual {sample} containing all reads
 * **config[bam_dir]/{species}\_{sample}.merged.dedup.bam** Merged alignment of all libraries for a single individual {sample} with PCR duplicates marked by PICARD tools MarkDuplicates
+* **config[report_dir]/bam_depth/{species}\_{sample}.chr.stat.gz** gzipped table with raw sequencing depth calculated by PanDepth (including duplicates and low quality reads) per contig
+* **config[report_dir]/bam_depth/{species}\_{sample}.chr.clean.stat.gz** gzipped table with filtered sequencing depth calculated by PanDepth (duplicates and reads with mapping quality < **config[pandepth_min_q]** removed) per chromosome
+* **config[report_dir]/bam_depth/{species}\_{sample}.win.stat.gz** gzipped table with filtered sequencing depth calculated by PanDepth (duplicates and reads with mapping quality < **config[pandepth_min_q]** removed) in sliding windows **config[pandepth_window_size]**
+* **config[report_dir]/bam_depth/{species}.bam.table.tsv** tab separated table collecting the results of flagstats and bamDepth for all samples
+
 ### 2_callvars
 * **config[gvcf_dir]/{species}\_{sample}\_{sub}.gvcf.gz** GVCF file for single individual {sample} generated by GATK HaplotypeCaller for a specific interval {sub} defined in **sub_intervals**
 * **config[gvcf_dir]/{species}\_{sub}\_GenomicsDB** Directory containing a [GenomicsDB](https://gatk.broadinstitute.org/hc/en-us/articles/360035891051-GenomicsDB) for all samples for a specific interval {sub}
@@ -268,9 +277,9 @@ You can set the number of times Snakemake is supposed to resubmit a failed job b
 
 ### Issues with GATK
 Unfortunately GATK has many unsolved issues, which cause problems in this type of analysis, especially when dealing with invariant sites. Below are a number of relevant and unsolved issues that I noted:
-* There are no more QUAL scores at most/all invariant sites. See [this report](https://gatk.broadinstitute.org/hc/en-us/community/posts/4412548615579-Not-quality-in-invariant-sites). This makes it impossible to filter invariant sites based on QUAL scores. Instead I filter sites based on sequencing depth at genotypes and then on missing data (options ?).  
+* There are no more QUAL scores at most/all invariant sites. See [this report](https://gatk.broadinstitute.org/hc/en-us/community/posts/4412548615579-Not-quality-in-invariant-sites). This makes it impossible to filter invariant sites based on QUAL scores. Instead I filter sites based on sequencing depth at genotypes and then on missing data. In addition, for some invariant sites the QUAL score may be noted as "Infinity" or similar. However, there does not seem to be any correlation with this score and sequencing depth, so it does not indicate particularly high confidence sites.
+* GATK tends to create non-sensical "long" reference alleles for some invariant sites, which can span several other following sites, which are properly called as either invariant or variant. See [this report](https://github.com/broadinstitute/gatk/issues/8030). So far, I leave these sites in the VCF files, if they are an issue with downstream analyses they should be filtered by hand.
 * Starting with GATK4.2.3 genotypes without sequencing coverage are now called as homozygous reference (e.g. 0/0) instead of no-call (e.g. ./.) as before. According to GATK [this is not a bug but a feature](https://gatk.broadinstitute.org/hc/en-us/articles/6012243429531-GenotypeGVCFs-and-the-death-of-the-dot), unfortunately it took the GATK team more than two years to tell anybody about it. 
-
 
 
 ## Still to implement
