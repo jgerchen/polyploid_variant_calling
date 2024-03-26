@@ -1,14 +1,13 @@
-depthmask_n: 10
 #default resources for rule GenotypeGenomicsDBSub
 GenotypeGenomicsDBSub_mem_mb: 50000
 GenotypeGenomicsDBSub_disk_mb: 50000
 GenotypeGenomicsDBSub_runtime: "24h"
 #default resources for rule make_depth_mask
-make_depth_mask_mem_mb: 32000
+make_depth_mask_mem_mb: 64000
 make_depth_mask_disk_mb: 40000
 make_depth_mask_runtime: "24h"
 #default resources for rule MergeSubVCFsbcftools
-MergeSubVCFsbcftools_mem_mb: 32000
-MergeSubVCFsbcftools_disk_mb: 100000
+MergeSubVCFsbcftools_mem_mb: 96000
+MergeSubVCFsbcftools_disk_mb: 200000
 MergeSubVCFsbcftools_runtime: "6h"
 

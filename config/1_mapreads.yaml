@@ -1,6 +1,10 @@
 run_fastqc: 1
 trim_reads: 1
 plot_bamstats: 1
+#required for any step before population level genotyping. Deactivate this only if you have a finished VCF file and just want to filter it without snakemake looking for fastq files from the sample list
+find_fastq_files: 1
+#list of regular expression pairs used to identify PE read pairs. Pairs are separated with "," and forward and reverse REs of the same pair with ":". 
+paired_end_res: ".*R1.*:.*R2.*,.*fwd.*:.*rev.*"
 #additional options for trimmomatic
 #Cut N bases at the beginning of the read. Standard value does nothing
 trimmomatic_headcrop: 0
@@ -36,3 +40,8 @@ merge_bams_mem_mb: 16000
 merge_bams_disk_mb: 16000
 merge_bams_runtime: "24h"
 
+bam_depth_mem_mb: 16000
+bam_depth_disk_mb: 32000
+bam_depth_runtime: "12h"
+pandepth_window_size: 1000
+pandepth_min_q: 20

@@ -100,15 +100,27 @@ This workflow uses a bunch of other software packages, which are available as mo
 * PicardTools
 * fastQC (optional)
 * R
+For estimating mean depth of bam files and for generating genome-wide estimates this workflow uses [PanDepth](https://github.com/HuiyangYu/PanDepth). PanDepth is very fast, but there is neither a Conda package nor a module on MetaCentrum. However, you can download [pre-build binaries](https://github.com/HuiyangYu/PanDepth/releases). After extracting them, you'll have to set the path to the binary by setting the *PANDEPTH* path in your prerun_script (1_mapreads.sh). 
+
 2. Variant calling on the individual level
 * GATK4
 3. joint genotyping
 * Bedtools
 * GATK4
 * Bcftools
-4. Filtering of variant calls
-* GATK4 and PicardTools or Bcftools
+4. Filtering of variant calls using bcftools
+* bcftools
+* Numpy
+* matplotlib
+* bedops
 * Bedtools
+For having a recent version of matplotlib on Metacentrum, it is recommended to create a COnda environment for the filtering step and install the dependencies using
+
+```
+mamba install -c bioconda bcftools numpy matplotlib bedops bedtools
+```
+
+
 ### Installing the workflow
 
 You can clone the workflow to your local directory using
@@ -125,11 +137,12 @@ The individual parameters that have to be set are:
 * **input_fasta** Your reference genome in fasta format
 * **sample_list** tab-separated file containing information about individual samples format is as follows:
  ```
-sample_name<TAB>file_name<TAB>adaptor_file
+sample_name<TAB>file_name<TAB>adapter_file<TAB>sample_ploidy
 ```
-Here sample_name will determine the naming of other downstream files for each sample (wildcard {sample}) and file name is used to identify individual fastq files containing reads for this sample (file_name must be contained in the name of each fastq file). Files are identified using the [python glob module](https://docs.python.org/3/library/glob.html), e.g. it will also match wildcards contained in the name like * or ?. Multiple file_names can be matched by entering a comma-separated list (with no spaces). Finally, adaptor_file determines the name of the adapter file used for trimmomatic for this sample (located in **adapter_dir**).
-* **sample_ploidies** tab-separated file containing sample name and ploidy of individual
-* **sub_intervals** defining genomic intervals over which GATK haplotypecaller and population level genotyping will be parallelized in a [scatter-gather](https://gatk.broadinstitute.org/hc/en-us/articles/360035532012-Parallelism-Multithreading-Scatter-Gather) fashion. Each line defines an interval, over which variant calling will run as a single job. The file is tab-seperated in two columns, the first line defines the name for output file for each interval, the second line is either the name of a single contig or [interval](https://gatk.broadinstitute.org/hc/en-us/articles/360035531852-Intervals-and-interval-lists) in the fasta file or, if multiple contigs or intervals should be run in a single job, the location of a second file that contains a list of all the contigs or intervals (one per line), that should be run in a single job.
+Here sample_name will determine the naming of other downstream files for each sample (wildcard {sample}) and file name is used to identify individual fastq files containing reads for this sample (file_name must be contained in the name of each fastq file). Files are identified using the [python glob module](https://docs.python.org/3/library/glob.html), e.g. it will also match bash wildcards contained in the name like * or ?. Multiple file_names can be matched by entering a comma-separated list (with no spaces). Furthermore, paired-end reads have to be matched correctly in pairs. Since there may be more complex situations than for sample names, I'm using the [RE module from python](https://docs.python.org/3/library/re.html) to match REs within the results from the glob module. Multiple PE pairs can be defined using the **paired_end_res** option (default: R1/R2 and fwd/rev), more explanations are in the comments of the [default config file](config/1_mapreads.yaml).
+The column adapter_file determines the name of the adapter file used for trimmomatic for this sample (located in **adapter_dir**), sample_ploidy determines sample ploidy (2 for diploid, 4 for tetraploid etc.).
+
+* **sub_intervals** defining genomic intervals over which GATK haplotypecaller and population level genotyping will be parallelized in a [scatter-gather](https://gatk.broadinstitute.org/hc/en-us/articles/360035532012-Parallelism-Multithreading-Scatter-Gather) fashion. Each line defines an interval, over which variant calling will run as a single job. The file is tab-seperated in two columns, the first line defines the name for output file for each interval, the second line is either the name of a single contig or [interval](https://gatk.broadinstitute.org/hc/en-us/articles/360035531852-Intervals-and-interval-lists) in the fasta file or, if multiple contigs or intervals should be run in a single job, they can be separated with commas (without spaces) and put in the same line (e.g. interval<TAB>contig1,contig2,contig3,...).
 
 ##### Pre-existing directories
 
@@ -160,6 +173,8 @@ If your computing environment does not require to run these scripts you can deac
 
 ## Running the pipeline
 In priciple, you have to run Snakemake in the workflow directory (where the main Snakefile is located), giving the desired output file(s) as a parameter. In addition, you'll have to provide your main config file using the --configfile parameter and you'll have to define the number of parallel jobs using the -j parameter. Snakemake will then test if the output can be genrated given the rules and input files. If true, it will run the rules and generate output files. For most downstreaam output files that you're most likely interested in generating, you'll have to set the {species} [wildcard](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#wildcards), which will then be automatically used for naming all upstream files.
+
+
 In general, it is useful to do a dry run, to test if the workflow (with your config file) can be resolved before you actually run it using
 
 ```
@@ -171,9 +186,10 @@ snakemake output_file --configfile config.yaml --dag | dot -Tsvg > dag.svg
 ```
 For this you need [graphviz](https://graphviz.org/) installed, on metacentrum you can load it as a module using
 ```
-module load graphviz          
+module load graphviz 
 ```
 While it should be possible to run this workflow on any HPC computing platform, I designed some aspects of it with the architecture of MetaCentrum in mind. That means that currently for each job all input files are copied to a temporary directory (defined by the **temp_dir** option, standard is the $SCRATCHDIR variable used to define the local filesystem of computing notes in MetaCentrum) and the results are copied back to the appropriate directory defined in the config file afterwards while all temporary files, which are not specifically designated as output files of rules, are deleted.
+Since the primary merged, unfiltered VCF files (**config[vcf_dir]/{species}.merged.vcf.gz**) can get very large, they are not copied to the temporary directory but directly read by BCFtools in downstream rules. Copying of these files can activated by setting the option **copy_large_vcfs** to 1.
 
 ### Running it on MetaCentrum
 After you installed the  [Metacentrum cluster profile](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles), you can run snakemake using 
@@ -185,6 +201,7 @@ For longer workflows, you may want to run Snakemake itself on the [oven node](ht
 ```
 qsub -q oven jobscript.sh 
 ```
+An example script can be found [here](examples/run_snakemake.sh)
 ## Output files
 
 You can generate any intermediate files that are defined in output directive of any rule in the workflow. Here **config[option]** are paths defined in the config files and **{wildcard}** are wildcards which are defined either based on the name of ouput files or internally for example based on the names in the sample list.  Likely most interesting output files are:
@@ -201,7 +218,6 @@ You can generate any intermediate files that are defined in output directive of 
 * **config[gvcf_dir]/{species}\_{sub}\_GenomicsDB** Directory containing a [GenomicsDB](https://gatk.broadinstitute.org/hc/en-us/articles/360035891051-GenomicsDB) for all samples for a specific interval {sub}
 ### 3_genotypeGVCF
 * **config[vcf_dir]/{species}\_{sub}.vcf.gz** Unfiltered VCF file for all samples for a specific interval {sub}, containing both variants and invariant sites
-* **config[depthmask_dir]/{species}\_dm.bed** Bedfile containing genomic regions with excessive depth, identified by the [depthmask script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask)
 * **config[vcf_dir]/{species}.merged.vcf.gz** Unfiltered VCF file for all samples with all intervals merged
 
 ### 4_filter
@@ -224,11 +240,10 @@ You can generate any intermediate files that are defined in output directive of 
 
 #### BCFtools
 * **config[vcf_filtered]/{species}.bisel.bt.vcf.gz** VCF file containing all biallelic SNPs (invariants, multi-allelic variants and INDELS and complex variants removed)
-* **config[vcf_filtered]/{species}.bifilt.bt.vcf.gz** Biallelic SNPs filtered for GATK best practice values by default (or individual values defined in the config files), with filtered Variants annotated in the FILTER column of the VCF file
 * **config[vcf_filtered]/{species}.bipassed.bt.vcf.gz** Biallelic SNPs with SNPs marked as filtered in the previous step removed
-* **config[vcf_filtered]/{species}.novarsel.bt.vcf.gz** VCF file containing invariant sites (bi- and multi-allelic variants and INDELS and complex variants removed)
-* **config[vcf_filtered]/{species}.novarfilt.bt.vcf.gz** Invariant sites filtered based on the QUAL score (default 15, can be changed by the **invariantQUAL_less** option) annotated in the FILTER column of the VCF file
-* **config[vcf_filtered]/{species}.novarpass.bt.vcf.gz** Invariants with sites filtered in the previous step removed
+* **config[vcf_filtered]/{species}.novarpass.bt.vcf.gz** Invariants with sites filtered with either QUAL scores or based on sequencing depth at individual genotypes, followed by missing data filtering 
+
+
 * **config[vcf_filtered]/{species}.merged.bt.vcf.gz** Filtered biallelic SNPs and Invariants merged into a single VCF
 * **config[vcf_filtered]/{species}.merged.filtered.bt.vcf.gz** Biallelic SNPs and variants with additional exclusion of regions with excessive depth (defined in {species}\_dm.bed) and optional additonal bed file defining regions with excess heterozygosity (can be set using the **hetmask** option to a different value than the standard value "None")
 * **config[vcf_filtered]/{species}.bipassed.dp.bt.vcf.gz** Filtered bi-allic SNPs with genotypes that don't pass the minimum depth threshold (default 8, can be set using the **gen_min_depth** option) set to no-call
@@ -236,15 +251,26 @@ You can generate any intermediate files that are defined in output directive of 
 * **config[vcf_filtered]/{species}.fourfold.filtered.bt.vcf.gz** biallelic SNPs and Invariants merged into a single VCF, subset to contain only fourfold degenerate sites (defined by the **fourfold** option)
 * **config[vcf_filtered]/{species}.bi.fourfold.dp.bt.vcf.gz** Filtered bi-allic SNPs with genotypes that don't pass the minimum depth threshold (default 8, can be set using the **gen_min_depth** option) set to no-call, hard filtered for **fourfold** degenrate site and **depthmask** and optional **hetmask** 
 * **config[vcf_filtered]/{species}.bi.fourfold.dp.m.bt.vcf.gz** previous file, but with sites removed, which have a greater proportion of missing data than a pre-defined threshold (default 0.5, can be set using the **gen_max_missing** option)
+* **config[depthmask_dir]/{species}\_dm.bt.bed** Bedfile containing genomic regions with excessive depth, identified by the [depthmask script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask). Proportion of samples with excess depth required for site to be included in depth mask can be set with the *depthmask_prop_excess_depth* parameter
 
 ## Notes
-* If you build a depth mask from scratch, you should manually adjust the -n parameter, see [here](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask) how to do this.
 * When setting filtering expressions (e.g. the QDless parameters etc.) you should make sure that you set the correct type (so 2.0 instead of just 2, see point 4 [here](https://gatk.broadinstitute.org/hc/en-us/articles/360035891011-JEXL-filtering-expressions) ). Thanks GATK developers...
+
+### Limitations of wildcards
+I use underscores to separate multiple wildcards in filenames. Since Snakemakes tends to resolve wildcards greedily based on filenames, using underscores in your own wildcards can result in problems and undefined behaviour. This applies to the species wildcard as well as sample and contig names set in you sample and contig list.   
+
 ### Setting resources
 Each rule has a standard value for [resources](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#resources). Memory (in mb) is defined by **mem_mb**, disk space (in mb) is defined by **disk_mb** and runtime is now defined in human readable format (1d for one day, 1h for 1hour 1m for one minute etc.) by **runtime**. Default resources are defined in the config files. Alternatively, these can be set manually using the --set-resources RULE:RESOURCE=VALUE option of Snakemake. So for example to set the memory requirement for rule GenotypeGenomicsDBSub to 100000 mb add the option  --set-resources GenotypeGenomicsDBSub:mem_mb=100000 to your snakemake command. Similarly, to set the number of threads for a specific rule you can use --set-threads RULE=THREADS. However, increasing the number of threads may potentially result in runtime improvements only for the rules **trimmomatic** and **map_reads**, but not for variant calling or genotyping or filtering.
 
 ### Failed jobs
 You can set the number of times Snakemake is supposed to resubmit a failed job by setting the --retries option of Snakemake. If you don't set resources yourself using the --set-resources option (which overrides this functionality) you can set that the standard values for **mem_mb**, **disk_mb** and **runtime** are automatically increased with every rerun. The factor by which each resource is increased with every rerun can be set by the **repeat_mem_mb_factor** (for memory), **repeat_disk_mb_factor** (for disk space) and **repeat_runtime_factor** (for runtime) options in the Snakefile. If you set it to 0, the standard value will remain the same with every attempt, if you set it to 0.5 it will increase linearly by 50% with every attempt etc.
+
+
+### Issues with GATK
+Unfortunately GATK has many unsolved issues, which cause problems in this type of analysis, especially when dealing with invariant sites. Below are a number of relevant and unsolved issues that I noted:
+* There are no more QUAL scores at most/all invariant sites. See [this report](https://gatk.broadinstitute.org/hc/en-us/community/posts/4412548615579-Not-quality-in-invariant-sites). This makes it impossible to filter invariant sites based on QUAL scores. Instead I filter sites based on sequencing depth at genotypes and then on missing data (options ?).  
+* Starting with GATK4.2.3 genotypes without sequencing coverage are now called as homozygous reference (e.g. 0/0) instead of no-call (e.g. ./.) as before. According to GATK [this is not a bug but a feature](https://gatk.broadinstitute.org/hc/en-us/articles/6012243429531-GenotypeGVCFs-and-the-death-of-the-dot), unfortunately it took the GATK team more than two years to tell anybody about it. 
+
 
 
 ## Still to implement
@@ -253,8 +279,4 @@ While the workflow should be functional as it is now there are still several fea
 
 * Improved plotting functions either using Snakemake reports or via direct integration of [multiQC](https://multiqc.info/)
 * Implementation of [updog](https://dcgerard.github.io/updog/) for improved polyploid genotyping
-
-
-
-
 

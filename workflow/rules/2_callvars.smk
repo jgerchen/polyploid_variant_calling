@@ -1,9 +1,17 @@
 from humanfriendly import parse_timespan
-configfile: "../config/2_callvars.yaml"
+configfile: workflow.source_path("../../config/2_callvars.yaml")
 
 
 with open(config["sub_intervals"]) as interval_file:
-	interval_list=[i.strip().split()[0] for i in interval_file]
+	interval_dict={}
+	interval_list=[]
+	for int_i in interval_file:
+		if len(int_i.strip())>0:
+			interval_name=int_i.strip().split()[0]
+			interval_int=int_i.strip().split()[1]
+			assert "_" not in interval_name, "Interval names must not contain underscores! Remove the underscore in interval name %s and try again" % interval_name
+			interval_dict.update({interval_name:interval_int})
+			interval_list.append(interval_name)
 ###DO not use too slow.
 #rule haplotypecaller:
 #	input:
@@ -88,13 +96,12 @@ def hapcallerSub_runtime(wildcards, attempt):
 	#hapcallerSub_runtime_cats=config["hapcallerSub_runtime"].split(":")
 	#return str(int(hapcallerSub_runtime_cats[0])+int(int(hapcallerSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+hapcallerSub_runtime_cats[1]+":"+hapcallerSub_runtime_cats[2]
 
-#TODO: extract read information from GATK haplotypeCaller output
 rule hapcallerSub:
 	input:
 		bam=config["bam_dir"]+"/{species}_{sample}.merged.dedup.bam",
 		bam_index=config["bam_dir"]+"/{species}_{sample}.merged.dedup.bam.bai",
-		ploidy_input=ancient(config["sample_ploidies"]),
-		sub_interval_list=config["sub_intervals"],
+		#sample_list=config["sample_list"],
+		#sub_interval_list=config["sub_intervals"],
 		ref_fasta=config["fasta_dir"]+"/{species}.fasta",
 		ref_fasta_dict=config["fasta_dir"]+"/{species}.dict",
 		ref_fasta_fai=config["fasta_dir"]+"/{species}.fasta.fai"
@@ -105,6 +112,9 @@ rule hapcallerSub:
 		mem_mb=hapcallerSub_mem_mb,
 		disk_mb=hapcallerSub_disk_mb,
 		runtime=hapcallerSub_runtime
+	params:
+		sample_ploidy=lambda wildcards: sample_dict[wildcards.sample][2],
+		sub_interval=lambda wildcards: interval_dict[wildcards.sub]
 	log:
 		config["log_dir"]+"/hapcallerSub_{species}_{sample}_{sub}.log"
 	shell:
@@ -118,13 +128,14 @@ rule hapcallerSub:
 		fi
 		cp {input} $temp_folder
 		cd $temp_folder
-		ploidy_file=$(awk -F/ '{{print $NF}}' <<< {input.ploidy_input})
-		s_ploidy=$(awk '{{if ($1==\"{wildcards.sample}\") print $2 }}' $ploidy_file )
-		echo "Sample ploidy is "$s_ploidy >> {log}
-		sub_interval_list=$(awk -F/ '{{print $NF}}' <<< {input.sub_interval_list})
-		sub_interval=$(awk '{{if ($1==\"{wildcards.sub}\") print $2 }}' $sub_interval_list )
+		sub_interval={params.sub_interval}
+		if [[ $sub_interval = *','* ]]
+		then
+			echo $sub_interval | sed -e $'s/,/\\\n/g' > sub_intervals.list
+			sub_interval=sub_intervals.list
+		fi
 
-		$GATK4 HaplotypeCaller -I {wildcards.species}_{wildcards.sample}.merged.dedup.bam -R {wildcards.species}.fasta -O {wildcards.species}_{wildcards.sample}_{wildcards.sub}.g.vcf.gz -ERC GVCF --min-base-quality-score {config[hapcaller_minbaseq]} --minimum-mapping-quality {config[hapcaller_minmapq]} -ploidy $s_ploidy -stand-call-conf 20 --pcr-indel-model NONE --max-genotype-count 350 -L $sub_interval &>> {log}
+		$GATK4 HaplotypeCaller -I {wildcards.species}_{wildcards.sample}.merged.dedup.bam -R {wildcards.species}.fasta -O {wildcards.species}_{wildcards.sample}_{wildcards.sub}.g.vcf.gz -ERC GVCF --min-base-quality-score {config[hapcaller_minbaseq]} --minimum-mapping-quality {config[hapcaller_minmapq]} -ploidy {params.sample_ploidy} --max-genotype-count 350 -L $sub_interval &>> {log}
 		#removed rf BadMate
 		cp {wildcards.species}_{wildcards.sample}_{wildcards.sub}.g.vcf.gz {output.gvcf_out} 		
 		"""
@@ -143,10 +154,25 @@ def GenomicsDBimportSub_runtime(wildcards, attempt):
 #GenomicsDBimportSub_runtime_cats=config["GenomicsDBimportSub_runtime"].split(":")
 #	return str(int(GenomicsDBimportSub_runtime_cats[0])+int(int(GenomicsDBimportSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+GenomicsDBimportSub_runtime_cats[1]+":"+GenomicsDBimportSub_runtime_cats[2]
 
+def get_samples_genomicsdb(wildcards):
+	genomicsdb_output_gvcfs=[]
+	with checkpoints.get_sample_reads.get(species=wildcards.species, sub=wildcards.sub).output[0].open() as f:
+		#check if dictionary is already populated, then there's no need to read the file again!
+		if len(sample_dict)==0:
+			for sample_line in f:
+				samp_cats=sample_line.strip().split()
+				if samp_cats[0] not in sample_dict:
+					sample_dict.update({samp_cats[0]:({samp_cats[1]:(samp_cats[2], samp_cats[3])},samp_cats[4],samp_cats[5])})
+				else:
+					if samp_cats[1] not in sample_dict[samp_cats[0]][0]:
+						sample_dict[samp_cats[0]][0].update({samp_cats[1]:(samp_cats[2], samp_cats[3])})
+		for dict_sample in sample_dict:
+			genomicsdb_output_gvcfs.append(config["gvcf_dir"]+"/{species}_"+dict_sample+"_{sub}.gvcf.gz")
+	return genomicsdb_output_gvcfs
+
 rule GenomicsDBimportSub:
 	input:
-		gvfs=expand(config["gvcf_dir"]+"/{{species}}_{sample}_{{sub}}.gvcf.gz", sample=list(sample_dict.keys())),
-		sub_interval_list=config["sub_intervals"]
+		get_samples_genomicsdb
 	output:
 		directory(config["gvcf_dir"]+"/{species}_{sub}_GenomicsDB")
 	threads: 4
@@ -154,6 +180,8 @@ rule GenomicsDBimportSub:
 		mem_mb=GenomicsDBimportSub_mem_mb,
 		disk_mb=GenomicsDBimportSub_disk_mb,
 		runtime=GenomicsDBimportSub_runtime
+	params:
+		sub_interval=lambda wildcards: interval_dict[wildcards.sub]
 	log:
 		config["log_dir"]+"/GenomicsDBimportSub_{species}_{sub}.log"
 	shell:
@@ -168,9 +196,12 @@ rule GenomicsDBimportSub:
 		cp {input} $temp_folder
 		cd $temp_folder
 		mkdir tmp
-		cp {config[sub_intervals]} .
-		sub_interval_list=$(awk -F/ '{{print $NF}}' <<< {input.sub_interval_list})
-		sub_interval=$(awk '{{if ($1==\"{wildcards.sub}\") print $2 }}' $sub_interval_list )
+		sub_interval={params.sub_interval}
+		if [[ $sub_interval = *','* ]]
+		then
+			echo $sub_interval | sed 's/,/\n/g' > sub_intervals.list
+			sub_interval=sub_intervals.list
+		fi
 		touch cohort.sample_map
 		for in_gvzf in *.gvcf.gz
 		do

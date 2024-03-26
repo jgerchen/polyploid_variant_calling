@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 vcf_input=args.vcf
 output=args.output
-nsamples=int(args.nsamples)
+nsamples=int(round(float(args.nsamples), 0))
 nloci=int(args.locinumber)
 counts=args.countout
 histcounts=args.plothist
@@ -35,15 +35,16 @@ for line in inp_file:
 
 #            data_array=numpy.zeros((nloci,sample_length),dtype=numpy.uint16)
             data_array = numpy.empty((nloci,sample_length),dtype=numpy.uint16)
-            data_array.fill(numpy.nan)
-            name_array=numpy.full(nloci, "", dtype=numpy.object)
+         #   data_array.fill(numpy.nan)
+          #  name_array=numpy.full(nloci, "", dtype=numpy.object)
+            name_array=numpy.full(nloci, "", dtype=object)
     else:
         if loci_counter==nloci:
             print("Warning: --locinumber is smaller than the actual number of loci in the VCF file. Growing internal data array by 100000 lines. This is computationally inefficient. Avoid this by increasing the value for --locinumber")
             add_array=numpy.empty((100000, sample_length),dtype=numpy.uint16)
             add_array.fill(numpy.nan)
             data_array=numpy.vstack((data_array, add_array))
-            name_array=numpy.concatenate((name_array, numpy.full(100000, "", dtype=numpy.object)))
+            name_array=numpy.concatenate((name_array, numpy.full(100000, "", dtype=object)))
         loc_cats=line.strip().split("\t")
         name_array[loci_counter]=loc_cats[0]+"\t"+loc_cats[1]
         #Do we have to do this for every locus? Maybe yes to be safe.

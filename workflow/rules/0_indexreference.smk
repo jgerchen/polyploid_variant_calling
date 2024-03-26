@@ -1,4 +1,4 @@
-configfile: "../config/0_indexreference.yaml"
+configfile: workflow.source_path("../../config/0_indexreference.yaml")
 
 
 rule index_reference:

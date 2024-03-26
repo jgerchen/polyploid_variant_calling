@@ -1,32 +1,71 @@
-import glob
-import re
+#import glob
+#import re
+configfile: workflow.source_path("../../config/1_mapreads.yaml")
+import os.path
 from humanfriendly import parse_timespan
 
-configfile: "../config/1_mapreads.yaml"
-
-#fastqname\tnewname\tadapter
-#files will be named: newname_1.bam etc. and eventually newname.merged.bam
 sample_dict={}
-with open(config["sample_list"]) as sample_list:
-	for line in sample_list:
-		sample_cats=line.strip().split()
-		sample_libs=[]
-		for s_cat_multiple in sample_cats[1].split(","):
-			if type(config["fastq_dir"])==str:
-				sample_glob=glob.glob(config["fastq_dir"]+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
-				if len(sample_glob)>0:
-					sample_libs=list(set(sample_libs).union(set(sample_glob)))
-			elif type(config["fastq_dir"]) in {list, tuple}:
-				for fastq_dir  in config["fastq_dir"]:
-					sample_glob=glob.glob(fastq_dir+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
-					if len(sample_glob)>0:
-						sample_libs=list(set(sample_libs).union(set(sample_glob)))
-		assert len(sample_libs)>=2, "There have to be at least 2 libraries per sample, however sample %s only has %s." % (sample_cats[0], len(sample_libs))
-		r1_re=re.compile(".*R1.*")
-		samples_r1=list(filter(r1_re.match, sample_libs))
-		assert len(samples_r1)>0, "No library from sample %s matches regular expression for first read pair" % sample_cats[0]
-		sample_libs_dict={str(i+1):(samples_r1[i] ,samples_r1[i].replace("R1", "R2")) for i in range(len(samples_r1))}
-		sample_dict.update({sample_cats[0]:(sample_libs_dict, config["adapter_dir"]+"/"+sample_cats[2])})	
+if os.path.isfile(config["sample_read_file"]):
+	with open(config["sample_read_file"]) as s_read_file:
+		for s_read_line in s_read_file:
+			s_read_line_cats=s_read_line.strip().split()
+			if s_read_line_cats[0] not in sample_dict:
+				sample_dict.update({s_read_line_cats[0]:({s_read_line_cats[1]:(s_read_line_cats[2], s_read_line_cats[3])},s_read_line_cats[4],s_read_line_cats[5])})
+			else:
+				if s_read_line_cats[1] not in sample_dict[s_read_line_cats[0]][0]:
+					sample_dict[s_read_line_cats[0]][0].update({s_read_line_cats[1]:(s_read_line_cats[2], s_read_line_cats[3])})
+
+checkpoint get_sample_reads:
+	input:
+		sample_list=config["sample_list"]
+	output:
+		sample_read_file=config["sample_read_file"]
+	threads: 1
+	resources:
+		mem_mb=config["get_sample_reads_mem_mb"],
+		disk_mb=config["get_sample_reads_disk_mb"],
+		runtime=config["get_sample_reads_runtime"]
+	log:
+		config["log_dir"]+"/get_sample_reads.log"
+	run:
+		import glob
+		import re
+		pe_strings=[read_i.split(":") for read_i in config["paired_end_res"].split(",")]
+
+		with open(input.sample_list) as sample_list:
+			with open(output.sample_read_file, "w") as s_read_out:
+				for line in sample_list:
+					if len(line.strip())>0:
+						sample_cats=line.strip().split()
+						assert len(sample_cats)==4, "The sample list must have 4 columns (sample name,file name(s), adapter file and ploidy), but here it's %s" % len(sample_cats)
+						assert "_" not in sample_cats[0], "Sample names must not contain underscores! Remove the underscore in sample name %s and try again" % sample_cats[0]
+						sample_libs=[]
+						if config["find_fastq_files"]==True:
+							for s_cat_multiple in sample_cats[1].split(","):
+								if type(config["fastq_dir"])==str:
+									sample_glob=glob.glob(config["fastq_dir"]+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
+									if len(sample_glob)>0:
+										sample_libs=list(set(sample_libs).union(set(sample_glob)))
+								elif type(config["fastq_dir"]) in {list, tuple}:
+									for fastq_dir  in config["fastq_dir"]:
+										sample_glob=glob.glob(fastq_dir+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
+										if len(sample_glob)>0:
+											sample_libs=list(set(sample_libs).union(set(sample_glob)))
+							assert len(sample_libs)>=2, "There have to be at least 2 libraries per sample, however sample %s only has %s." % (sample_cats[0], len(sample_libs))
+							#get list of wildcard pairs
+							for pe_re in pe_strings:
+								#1. match re1
+								r1_re=re.compile(pe_re[0])
+								samples_r1=sorted(list(filter(r1_re.match, sample_libs)))
+								#2. match re2
+								r2_re=re.compile(pe_re[1])
+								samples_r2=sorted(list(filter(r2_re.match, sample_libs)))
+								#ensure the length of both matches is the same
+								assert len(samples_r1)==len(samples_r2), "Regular expressions for forward and reverse reads have to match the same number of times, but for sample %s RE %s matches %s times but RE %s matches %s times." % (sample_cats[0], pe_re[0], len(samples_r1), pe_re[1], len(samples_r2))
+								for re_pair_i in range(len(samples_r1)):
+									s_read_out.write("%s\t%s\t%s\t%s\t%s\t%s\n" % (sample_cats[0], re_pair_i, samples_r1[re_pair_i], samples_r2[re_pair_i], config["adapter_dir"]+"/"+sample_cats[2], sample_cats[3]))
+
+
 def get_fwd_reads(wildcards):
 	return sample_dict[wildcards.sample][0][wildcards.lib][0]
 def get_rev_reads(wildcards):
@@ -111,16 +150,19 @@ rule trimmomatic:
 		cd $temp_folder
 		fwd_reads=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads})
 		rev_reads=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads})
+		mv $fwd_reads input_fwd_reads.fastq.gz
+		mv $rev_reads input_rev_reads.fastq.gz
+
 		if [ {config[run_fastqc]} -eq 1 ]
 		then
 			mkdir fastqc_pre_out
 			fastqc -o fastqc_pre_out -t {threads} -f fastq  *.fastq.gz &>>{log}
-			cp fastqc_pre_out/*R1*.html {output.pre_fwd}
-			cp fastqc_pre_out/*R2*.html {output.pre_rev}
+			cp fastqc_pre_out/*input_fwd_reads*.html {output.pre_fwd}
+			cp fastqc_pre_out/*input_rev_reads*.html {output.pre_rev}
 		fi
 
 		adapter_file=$(awk -F/ '{{print $NF}}' <<< {input.adapter_file} )
-		trimmomatic PE -threads {threads} -trimlog trimmomatic.log $fwd_reads $rev_reads output_forward_paired.fq.gz output_forward_unpaired.fq.gz output_reverse_paired.fq.gz output_reverse_unpaired.fq.gz HEADCROP:{config[trimmomatic_headcrop]} ILLUMINACLIP:$adapter_file:{config[trimmomatic_clip_seedmismatches]}:{config[trimmomatic_clip_palindromethresh]}:{config[trimmomatic_clip_simplethresh]} TRAILING:{config[trimmomatic_trailing]} LEADING:{config[trimmomatic_leading]}  SLIDINGWINDOW:{config[trimmomatic_slidingw_size]}:{config[trimmomatic_slidingw_qual]} MINLEN:{config[trimmomatic_minlen]} &>> {log}
+		trimmomatic PE -threads {threads} -trimlog trimmomatic.log input_fwd_reads.fastq.gz input_rev_reads.fastq.gz output_forward_paired.fq.gz output_forward_unpaired.fq.gz output_reverse_paired.fq.gz output_reverse_unpaired.fq.gz HEADCROP:{config[trimmomatic_headcrop]} ILLUMINACLIP:$adapter_file:{config[trimmomatic_clip_seedmismatches]}:{config[trimmomatic_clip_palindromethresh]}:{config[trimmomatic_clip_simplethresh]} TRAILING:{config[trimmomatic_trailing]} LEADING:{config[trimmomatic_leading]}  SLIDINGWINDOW:{config[trimmomatic_slidingw_size]}:{config[trimmomatic_slidingw_qual]} MINLEN:{config[trimmomatic_minlen]} &>> {log}
 		if [ {config[run_fastqc]} -eq 1 ]
 		then
 			mkdir fastqc_post_out
@@ -236,11 +278,13 @@ rule merge_bams_deduplicate:
 		stats_plot_quals2=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals2.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle Plot 2"}) if config["plot_bamstats"]==True else [],
 		stats_plot_quals3=report(config["report_dir"]+"/merge_bams_dedup/plot_bamstats/{species}_{sample}_quals3.png", category="Merge bams and deduplicate", subcategory="Plot bamstats", labels={"Sample":"{sample}", "Plot":"Quality per cycle Plot 3"})  if config["plot_bamstats"]==True else [],
 		
-	threads: 2
+	threads: 1
 	resources:
 		mem_mb=merge_bams_mem_mb,
 		disk_mb=merge_bams_disk_mb,
 		runtime=merge_bams_runtime
+	params:
+		plot_flagstats_script=workflow.source_path("../scripts/plot_flagstats.R")
 	log:
 		config["log_dir"]+"/deduplicate_{species}_{sample}.log"
 	shell:
@@ -253,7 +297,7 @@ rule merge_bams_deduplicate:
 			source {config[cluster_code_dir]}/1_mapreads.sh
 		fi
 		cp {input} $temp_folder
-		cp scripts/plot_flagstats.R $temp_folder
+		cp {params.plot_flagstats_script} $temp_folder
 		cd $temp_folder
 		samtools merge all_merged.bam *.bam &>> {log}
 		samtools index all_merged.bam &>> {log}
@@ -290,4 +334,108 @@ rule merge_bams_deduplicate:
 		cp all_merged.bam.bai {output.merged_index}
 		cp all_merged.dedup.bam {output.merged_dedup}
 		cp all_merged.dedup.bam.bai {output.merged_dedup_index}
+		"""
+
+def bam_depth_mem_mb(wildcards, attempt):
+	return int(config["bam_depth_mem_mb"]+(config["bam_depth_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
+def bam_depth_disk_mb(wildcards, attempt):
+	return int(config["bam_depth_disk_mb"]+(config["bam_depth_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
+def bam_depth_runtime(wildcards, attempt):
+	bam_depth_runtime_seconds=parse_timespan(config["bam_depth_runtime"])
+	return str(bam_depth_runtime_seconds+int((bam_depth_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+
+
+rule bam_depth:
+	input:
+		merged_dedup=config["bam_dir"]+"/{species}_{sample}.merged.dedup.bam",
+		merged_dedup_index=config["bam_dir"]+"/{species}_{sample}.merged.dedup.bam.bai"
+	output:
+		stats_depth_contig=config["report_dir"]+"/bam_depth/{species}_{sample}.chr.stat.gz",
+		stats_depth_contig_clean=config["report_dir"]+"/bam_depth/{species}_{sample}.chr.clean.stat.gz",
+		stats_depth_window=config["report_dir"]+"/bam_depth/{species}_{sample}.win.stat.gz"
+	threads: 6
+	resources:
+		mem_mb=bam_depth_mem_mb,
+		disk_mb=bam_depth_disk_mb,
+		runtime=bam_depth_runtime
+	log:
+		config["log_dir"]+"/bam_depth_{species}_{sample}.log"
+	shell:
+		"""
+		temp_folder={config[temp_dir]}/bam_depth_{wildcards.species}_{wildcards.sample}
+		mkdir -p $temp_folder
+		trap 'rm -rf $temp_folder' TERM EXIT
+		if [ {config[load_cluster_code]} -eq 1 ]
+		then
+			source {config[cluster_code_dir]}/1_mapreads.sh
+		fi
+		cp {input} $temp_folder
+		cd $temp_folder
+		$PANDEPTH -i {wildcards.species}_{wildcards.sample}.merged.dedup.bam -o {wildcards.species}_{wildcards.sample} -t {threads} -x 4
+		cp {wildcards.species}_{wildcards.sample}.chr.stat.gz {output.stats_depth_contig}
+		$PANDEPTH -i {wildcards.species}_{wildcards.sample}.merged.dedup.bam -o {wildcards.species}_{wildcards.sample}.clean -q {config[pandepth_min_q]} -t {threads}
+		cp {wildcards.species}_{wildcards.sample}.clean.chr.stat.gz {output.stats_depth_contig_clean}
+		$PANDEPTH -i {wildcards.species}_{wildcards.sample}.merged.dedup.bam -w {config[pandepth_window_size]} -o {wildcards.species}_{wildcards.sample} -q {config[pandepth_min_q]} -t {threads}
+		cp {wildcards.species}_{wildcards.sample}.win.stat.gz {output.stats_depth_window}
+		"""
+
+
+def get_samples_bam_stats(wildcards):
+	#bam_stats_output_dict={"stats_depth_contig":[], "stats_depth_contig_clean":[], "stats_flagstat":[]}
+	bam_stats_output_dict={"stats_depth_contig":[], "stats_depth_contig_clean":[], "stats_flagstat":[]}
+	with checkpoints.get_sample_reads.get(species=wildcards.species).output[0].open() as f:
+		#TODO: check if dictionary is already populated, then there's no need to read the file again!
+		if len(sample_dict)==0:
+			for sample_line in f:
+				samp_cats=sample_line.strip().split()
+				if samp_cats[0] not in sample_dict:
+					sample_dict.update({samp_cats[0]:({samp_cats[1]:(samp_cats[2], samp_cats[3])},samp_cats[4],samp_cats[5])})
+				else:
+					if samp_cats[1] not in sample_dict[samp_cats[0]][0]:
+						sample_dict[samp_cats[0]][0].update({samp_cats[1]:(samp_cats[2], samp_cats[3])})
+		for dict_sample in sample_dict:
+			bam_stats_output_dict["stats_depth_contig"].append(config["report_dir"]+"/bam_depth/{species}_"+dict_sample+".chr.stat.gz")
+			bam_stats_output_dict["stats_depth_contig_clean"].append(config["report_dir"]+"/bam_depth/{species}_"+dict_sample+".chr.clean.stat.gz")
+			bam_stats_output_dict["stats_flagstat"].append(config["report_dir"]+"/merge_bams_dedup/{species}_"+dict_sample+".flagstats.tsv")
+	return bam_stats_output_dict
+
+
+rule merge_bam_stats:
+	input:
+		unpack(get_samples_bam_stats)
+		#stats_depth_contig=expand(config["report_dir"]+"/bam_depth/{{species}}_{sample}.chr.stat.gz", sample=list(sample_dict.keys())),
+		#stats_depth_contig_clean=expand(config["report_dir"]+"/bam_depth/{{species}}_{sample}.chr.clean.stat.gz", sample=list(sample_dict.keys())),
+		#stats_flagstat=expand(config["report_dir"]+"/merge_bams_dedup/{{species}}_{sample}.flagstats.tsv", sample=list(sample_dict.keys()))
+	output:
+		stats_table=config["report_dir"]+"/merge_bam_stats/{species}.bam.table.tsv",
+		plot_depth=report(config["report_dir"]+"/merge_bam_stats/{species}.depths.boxplot.pdf", category="Merge bam stats", subcategory="Depth plot", labels={"Species":"{species}"}),
+		plot_flagstats=report(config["report_dir"]+"/merge_bam_stats/{species}.flagstats.boxplot.pdf", category="Merge bam stats", subcategory="Flagstats plot", labels={"Species":"{species}"})
+	threads: 1
+	resources:
+		mem_mb=16000,
+		disk_mb=4000,
+		runtime="3600s"
+	params:
+		collect_bamstats_script=workflow.source_path("../scripts/collect_bam_stats.py"),
+		plot_merged_bamstats_script=workflow.source_path("../scripts/plot_merge_bam_stats.R")
+	log:
+		config["log_dir"]+"/merge_bam_stats_{species}.log"
+	shell:
+		"""
+		temp_folder={config[temp_dir]}/merge_bam_stats_{wildcards.species}
+		mkdir -p $temp_folder
+		trap 'rm -rf $temp_folder' TERM EXIT
+		if [ {config[load_cluster_code]} -eq 1 ]
+		then
+			source {config[cluster_code_dir]}/1_mapreads.sh
+		fi
+		cp {input} $temp_folder
+		cp {params.collect_bamstats_script} $temp_folder
+		cp {params.plot_merged_bamstats_script} $temp_folder
+		cd $temp_folder
+		python3 collect_bam_stats.py --depth *.chr.stat.gz --clean_depth *.chr.clean.stat.gz --flagstats *.flagstats.tsv -o {wildcards.species}.bam.table.tsv
+		cp {wildcards.species}.bam.table.tsv {output.stats_table}
+		Rscript plot_merge_bam_stats.R {wildcards.species}.bam.table.tsv {wildcards.species}.depths.boxplot.pdf {wildcards.species}.flagstats.boxplot.pdf 
+		cp {wildcards.species}.depths.boxplot.pdf {output.plot_depth}
+		cp {wildcards.species}.flagstats.boxplot.pdf {output.plot_flagstats}
 		"""

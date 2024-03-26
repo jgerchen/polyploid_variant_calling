@@ -1,7 +1,6 @@
 #Input files
 input_fasta: "/storage/brno2/home/gerchenj/Medicago/genome_chen/ZhongmuNo.1_genome.fasta"
 sample_list: "/storage/brno2/home/gerchenj/Medicago/Medicago_samples.tsv"
-sample_ploidies: "/storage/brno2/home/gerchenj/Medicago/Medicago_sample_ploidies.tsv"
 sub_intervals: "/storage/brno2/home/gerchenj/Medicago/Medicago_intervals.lst"
 fourfold: "None"
 #Pre-existing directories
@@ -19,4 +18,5 @@ vcf_filtered: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_vcf_fi
 log_dir: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_log"
 depthmask_dir: "/storage/brno2/home/gerchenj/Medicago/chen_depth_mask"
 report_dir: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_report"
+sample_read_file: "/storage/brno2/home/gerchenj/Medicago/Medicago_sample_reads.tsv"
 
