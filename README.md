@@ -218,8 +218,8 @@ You can generate any intermediate files that are defined in output directive of 
 * **config[bam_dir]/{species}\_{sample}.merged.bam** Merged alignment of all libraries for a single individual {sample} containing all reads
 * **config[bam_dir]/{species}\_{sample}.merged.dedup.bam** Merged alignment of all libraries for a single individual {sample} with PCR duplicates marked by PICARD tools MarkDuplicates
 * **config[report_dir]/bam_depth/{species}\_{sample}.chr.stat.gz** gzipped table with raw sequencing depth calculated by PanDepth (including duplicates and low quality reads) per contig
-* **config[report_dir]/bam_depth/{species}\_{sample}.chr.clean.stat.gz** gzipped table with filtered sequencing depth calculated by PanDepth (duplicates and reads with mapping quality < **config[pandepth_min_q]** removed) per chromosome
-* **config[report_dir]/bam_depth/{species}\_{sample}.win.stat.gz** gzipped table with filtered sequencing depth calculated by PanDepth (duplicates and reads with mapping quality < **config[pandepth_min_q]** removed) in sliding windows **config[pandepth_window_size]**
+* **config[report_dir]/bam_depth/{species}\_{sample}.chr.clean.stat.gz** gzipped table with filtered sequencing depth calculated by PanDepth (duplicates and reads with mapping quality < **pandepth_min_q** removed) per chromosome
+* **config[report_dir]/bam_depth/{species}\_{sample}.win.stat.gz** gzipped table with filtered sequencing depth calculated by PanDepth (duplicates and reads with mapping quality < **pandepth_min_q** removed) in sliding windows **config[pandepth_window_size]**
 * **config[report_dir]/bam_depth/{species}.bam.table.tsv** tab separated table collecting the results of flagstats and bamDepth for all samples
 
 ### 2_callvars
@@ -253,12 +253,12 @@ You can generate any intermediate files that are defined in output directive of 
 * **config[vcf_filtered]/{species}.bipassed.bt.vcf.gz** Biallelic SNPs with SNPs marked as filtered in the previous step removed and sites filtered with [GATK best practices filters](https://gatk.broadinstitute.org/hc/en-us/articles/360035890471-Hard-filtering-germline-short-variants)
 * **config[vcf_filtered]/{species}.novarpass.bt.vcf.gz** Invariants with sites filtered with either QUAL scores or based on sequencing depth at individual genotypes, followed by missing data filtering
 * **config[vcf_filtered]/{species}.multivar.bt.vcf.gz** All multiallelic sites, no filtering implemented.
-* **config[vcf_filtered]/{species}.bigt.dp.bt.vcf.gz** Biallelic SNPs, with sites with sequencing depth<**config[gen_min_depth]** set to no-call
-* **config[vcf_filtered]/{species}.bigt.dp.m.bt.vcf.gz** Biallelic SNPs, with sites removed with >**config[gen_max_missing]** missing data removed
+* **config[vcf_filtered]/{species}.bigt.dp.bt.vcf.gz** Biallelic SNPs, with sites with sequencing depth<**gen_min_depth** set to no-call
+* **config[vcf_filtered]/{species}.bigt.dp.m.bt.vcf.gz** Biallelic SNPs, with sites removed with >**gen_max_missing** missing data removed
 * **config[vcf_filtered]/{species}.merged.bt.vcf.gz** Filtered biallelic SNPs and Invariants merged into a single VCF
 * **config[vcf_filtered]/{species}.merged.masked.bt.vcf.gz"** Biallelic SNPs and variants with additional exclusion of regions with excessive depth (defined in {species}\_dm.bed) and optional additonal bed file defining regions with excess heterozygosity (can be set using the **hetmask** option to a different value than the standard value "None")
 * **config[vcf_filtered]/{species}.fourfold.bt.vcf.gz"** biallelic SNPs and Invariants merged into a single VCF, subset to contain only fourfold degenerate sites (defined by the **fourfold** option)
-* **config[depthmask_dir]/{species}\_dm.bt.bed** Bedfile containing genomic regions with excessive depth, identified by the [depthmask script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask). Proportion of samples with excess depth required for site to be included in depth mask can be set with the *depthmask_prop_excess_depth* parameter
+* **config[depthmask_dir]/{species}\_dm.bt.bed** Bedfile containing genomic regions with excessive depth, identified by the [depthmask script](https://github.com/jgerchen/polyploid_popgen/tree/main/depth_mask). Proportion of samples with excess depth required for site to be included in depth mask can be set with the **depthmask_prop_excess_depth** parameter
 
 ### Limitations of wildcards
 I use underscores to separate multiple wildcards in filenames. Since Snakemakes tends to resolve wildcards greedily based on filenames, using underscores in your own wildcards can result in problems and undefined behaviour. This applies to the species wildcard as well as sample and contig names set in you sample and contig list.   
