@@ -385,9 +385,9 @@ rule bcftools_mask:
 
 		cp invariant_general.pdf {output.vcf_stats_general_invariant_mask}	
 		cp {wildcards.species}.mask_QUAL_invariant.pdf {output.vcf_stats_QUAL_invariant_mask}
-		cp {wildcards.species}.mask_RGQ_comp_invariant.pdf (output.vcf_stats_GT_RGQ_invariant_mask)
+		cp {wildcards.species}.mask_RGQ_comp_invariant.pdf {output.vcf_stats_GT_RGQ_invariant_mask}
 		cp {wildcards.species}.mask_INFO_invariant.pdf {output.vcf_stats_INFO_invariant_mask}
-		cp {wildcards.species}.mask_DP_comp_invariant.pdf (output.vcf_stats_GT_DP_invariant_mask)
+		cp {wildcards.species}.mask_DP_comp_invariant.pdf {output.vcf_stats_GT_DP_invariant_mask}
 		cp {wildcards.species}.merged.masked.bt.vcf.gz {output.merged_masked}
 		tabix {wildcards.species}.merged.masked.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.merged.masked.bt.vcf.gz.tbi {output.merged_masked_index}
@@ -453,9 +453,9 @@ rule bcftools_filter_fourfold:
 
 		cp invariant_general.pdf {output.vcf_stats_general_invariant_fourfold}	
 		cp {wildcards.species}.fourfold_QUAL_invariant.pdf {output.vcf_stats_QUAL_invariant_fourfold}
-		cp {wildcards.species}.fourfold_RGQ_comp_invariant.pdf (output.vcf_stats_GT_RGQ_invariant_fourfold)
+		cp {wildcards.species}.fourfold_RGQ_comp_invariant.pdf {output.vcf_stats_GT_RGQ_invariant_fourfold}
 		cp {wildcards.species}.fourfold_INFO_invariant.pdf {output.vcf_stats_INFO_invariant_fourfold}
-		cp {wildcards.species}.fourfold_DP_comp_invariant.pdf (output.vcf_stats_GT_DP_invariant_fourfold)
+		cp {wildcards.species}.fourfold_DP_comp_invariant.pdf {output.vcf_stats_GT_DP_invariant_fourfold}
 
 		cp {wildcards.species}.fourfold.bt.vcf.gz {output.fourfold}
 		tabix {wildcards.species}.fourfold.bt.vcf.gz
