@@ -15,7 +15,7 @@ This pipeline is intended to do variant calling on population genomic datasets w
 4. Filtering of variant calls (either using GATK/PicardTools or Bcftools)
 
 ### Snakemake
-The workflow is implemented using [Snakemake](https://snakemake.readthedocs.io/en/stable/). You can find an introduction about the underlying concepts on the [Snakemake GitHub page](https://snakemake.github.io/). In general, individual tasks are defined as rules, based on which Snakemake determines how to generate desired output files from available input files and generates and runs required software. Snakemake is under continuous development and you should use the most recent version to run this workflow because slightly older versions may not work. I am currently running it under Snakemake 7.32.4.
+The workflow is implemented using [Snakemake](https://snakemake.readthedocs.io/en/stable/). You can find an introduction about the underlying concepts on the [Snakemake GitHub page](https://snakemake.github.io/). In general, individual tasks are defined as rules, based on which Snakemake determines how to generate desired output files from available input files and generates and runs required software. Snakemake is under continuous development and you should use the most recent version to run this workflow because slightly older versions may not work. I am currently running it under Snakemake 7.32.4, however Snakemake 8 is not supported yet.
 
 ## Setting up the workflow
 
