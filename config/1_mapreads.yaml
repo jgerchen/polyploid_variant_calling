@@ -45,3 +45,7 @@ bam_depth_disk_mb: 32000
 bam_depth_runtime: "12h"
 pandepth_window_size: 1000
 pandepth_min_q: 20
+
+get_sample_reads_mem_mb: 16000
+get_sample_reads_disk_mb: 8000
+get_sample_reads_runtime: "12h"

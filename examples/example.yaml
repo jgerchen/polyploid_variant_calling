@@ -3,6 +3,7 @@ input_fasta: "/storage/brno2/home/gerchenj/Medicago/genome_chen/ZhongmuNo.1_geno
 sample_list: "/storage/brno2/home/gerchenj/Medicago/Medicago_samples.tsv"
 sub_intervals: "/storage/brno2/home/gerchenj/Medicago/Medicago_intervals.lst"
 fourfold: "None"
+hetmask: "None"
 #Pre-existing directories
 cluster_code_dir: "/storage/brno2/home/gerchenj/Medicago/test_bcf_filter/chen_ccode"
 fastq_dir: "/storage/brno12-cerit/home/filip_kolar/brno3/ERC/raw_data"
