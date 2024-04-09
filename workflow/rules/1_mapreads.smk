@@ -40,30 +40,29 @@ checkpoint get_sample_reads:
 						assert len(sample_cats)==4, "The sample list must have 4 columns (sample name,file name(s), adapter file and ploidy), but here it's %s" % len(sample_cats)
 						assert "_" not in sample_cats[0], "Sample names must not contain underscores! Remove the underscore in sample name %s and try again" % sample_cats[0]
 						sample_libs=[]
-						if config["find_fastq_files"]==True:
-							for s_cat_multiple in sample_cats[1].split(","):
-								if type(config["fastq_dir"])==str:
-									sample_glob=glob.glob(config["fastq_dir"]+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
+						for s_cat_multiple in sample_cats[1].split(","):
+							if type(config["fastq_dir"])==str:
+								sample_glob=glob.glob(config["fastq_dir"]+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
+								if len(sample_glob)>0:
+									sample_libs=list(set(sample_libs).union(set(sample_glob)))
+							elif type(config["fastq_dir"]) in {list, tuple}:
+								for fastq_dir  in config["fastq_dir"]:
+									sample_glob=glob.glob(fastq_dir+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
 									if len(sample_glob)>0:
 										sample_libs=list(set(sample_libs).union(set(sample_glob)))
-								elif type(config["fastq_dir"]) in {list, tuple}:
-									for fastq_dir  in config["fastq_dir"]:
-										sample_glob=glob.glob(fastq_dir+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
-										if len(sample_glob)>0:
-											sample_libs=list(set(sample_libs).union(set(sample_glob)))
-							assert len(sample_libs)>=2, "There have to be at least 2 libraries per sample, however sample %s only has %s." % (sample_cats[0], len(sample_libs))
-							#get list of wildcard pairs
-							for pe_re in pe_strings:
-								#1. match re1
-								r1_re=re.compile(pe_re[0])
-								samples_r1=sorted(list(filter(r1_re.match, sample_libs)))
-								#2. match re2
-								r2_re=re.compile(pe_re[1])
-								samples_r2=sorted(list(filter(r2_re.match, sample_libs)))
-								#ensure the length of both matches is the same
-								assert len(samples_r1)==len(samples_r2), "Regular expressions for forward and reverse reads have to match the same number of times, but for sample %s RE %s matches %s times but RE %s matches %s times." % (sample_cats[0], pe_re[0], len(samples_r1), pe_re[1], len(samples_r2))
-								for re_pair_i in range(len(samples_r1)):
-									s_read_out.write("%s\t%s\t%s\t%s\t%s\t%s\n" % (sample_cats[0], re_pair_i, samples_r1[re_pair_i], samples_r2[re_pair_i], config["adapter_dir"]+"/"+sample_cats[2], sample_cats[3]))
+						assert len(sample_libs)>=2, "There have to be at least 2 libraries per sample, however sample %s only has %s." % (sample_cats[0], len(sample_libs))
+						#get list of wildcard pairs
+						for pe_re in pe_strings:
+							#1. match re1
+							r1_re=re.compile(pe_re[0])
+							samples_r1=sorted(list(filter(r1_re.match, sample_libs)))
+							#2. match re2
+							r2_re=re.compile(pe_re[1])
+							samples_r2=sorted(list(filter(r2_re.match, sample_libs)))
+							#ensure the length of both matches is the same
+							assert len(samples_r1)==len(samples_r2), "Regular expressions for forward and reverse reads have to match the same number of times, but for sample %s RE %s matches %s times but RE %s matches %s times." % (sample_cats[0], pe_re[0], len(samples_r1), pe_re[1], len(samples_r2))
+							for re_pair_i in range(len(samples_r1)):
+								s_read_out.write("%s\t%s\t%s\t%s\t%s\t%s\n" % (sample_cats[0], re_pair_i, samples_r1[re_pair_i], samples_r2[re_pair_i], config["adapter_dir"]+"/"+sample_cats[2], sample_cats[3]))
 
 
 def get_fwd_reads(wildcards):

@@ -70,22 +70,25 @@ rule MergeSubVCFsbcftools:
 		vcf_out=config["vcf_dir"]+"/{species}.merged.vcf.gz",
 		vcf_out_index=config["vcf_dir"]+"/{species}.merged.vcf.gz.tbi",
 		vcf_stats_table=config["report_dir"]+"/MergeSubVCFs/{species}.merged.tsv",
-		vcf_stats_general_biallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_biallelic_general.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"biallelic", "statistic":"multiple"}),
-		vcf_stats_general_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_general.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"multiallelic", "statistic":"multiple"}),
-		vcf_stats_general_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_invariant_general.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"invariant", "statistic":"multiple"}),
 		vcf_stats_QUAL_biallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_biallelic_QUAL.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL"}),
-		vcf_stats_QUAL_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_QUAL.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"multiallelic", "statistic":"QUAL"}),
-		vcf_stats_QUAL_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_invariant_QUAL.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL"}),
+		vcf_stats_QUAL_categories_biallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_biallelic_QUAL_categories.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL_categories"}),
 		vcf_stats_INFO_biallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_biallelic_INFO.pdf", category="MergeSubVCFs", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO"}),
-		vcf_stats_INFO_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_INFO.pdf", category="MergeSubVCFs", subcategory="INFO", labels={"variant type":"multiallelic", "statistic":"INFO"}),
-		vcf_stats_INFO_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_invariant_INFO.pdf", category="MergeSubVCFs", subcategory="INFO", labels={"variant type":"invariant", "statistic":"INFO"}),
 		vcf_stats_GT_counts_biallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_counts_biallelic.pdf", category="MergeSubVCFs", subcategory="Genotype counts", labels={"variant type":"biallelic", "statistic":"GT counts"}),
 		vcf_stats_GT_DP_biallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_DP_biallelic.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT DP"}),
-		vcf_stats_GT_DP_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_DP_multiallelic.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"multiallelic", "statistic":"GT DP"}),
-		vcf_stats_GT_DP_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_DP_invariant.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT DP"}),
 		vcf_stats_GT_GQ_biallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_GQ_biallelic.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT GQ"}),
+		vcf_stats_n_alt_alleles_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_n_alt_alleles.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"multiallelic", "statistic":"N alt alleles"}),
+		vcf_stats_QUAL_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_QUAL.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"multiallelic", "statistic":"QUAL"}),
+		vcf_stats_QUAL_categories_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_QUAL_categories.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"multiallelic", "statistic":"QUAL_categories"}),
+		vcf_stats_INFO_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_INFO.pdf", category="MergeSubVCFs", subcategory="INFO", labels={"variant type":"multiallelic", "statistic":"INFO"}),
+		vcf_stats_GT_counts_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_counts_multiallelic.pdf", category="MergeSubVCFs", subcategory="Genotype counts", labels={"variant type":"multiallelic", "statistic":"GT counts"}),
+		vcf_stats_GT_DP_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_DP_multiallelic.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"multiallelic", "statistic":"GT DP"}),
 		vcf_stats_GT_GQ_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_GQ_multiallelic.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"multiallelic", "statistic":"GT GQ"}),
-		vcf_stats_GT_RGQ_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_RGQ_invariant.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT RGQ"}),
+		vcf_stats_QUAL_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_invariant_QUAL.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL"}),
+		vcf_stats_QUAL_categories_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_invariant_QUAL_categories.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL_categories"}),
+		vcf_stats_INFO_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_invariant_INFO.pdf", category="MergeSubVCFs", subcategory="INFO", labels={"variant type":"invariant", "statistic":"INFO"}),
+		vcf_stats_GT_counts_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_counts_invariant.pdf", category="MergeSubVCFs", subcategory="Genotype counts", labels={"variant type":"invariant", "statistic":"GT counts"}),
+		vcf_stats_GT_DP_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_DP_invariant.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT DP"}),
+		vcf_stats_GT_RGQ_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_RGQ_invariant.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT RGQ"})
 	threads: 3
 	resources:
 		mem_mb=MergeSubVCFsbcftools_mem_mb,
@@ -112,32 +115,34 @@ rule MergeSubVCFsbcftools:
 		awk '{{print "{wildcards.species}_"$1".vcf.gz"}}' $sub_intervals > input_files.list
 		bcftools concat -f input_files.list -n -o {wildcards.species}.merged.bt.vcf.gz
 		n_sites=$(bcftools view --threads 1 {wildcards.species}.merged.bt.vcf.gz | grep -c ^[^#])
-		bcftools view --threads 1 {wildcards.species}.merged.bt.vcf.gz | python3 parse_bcftools_stdout.py \
-			   --n_sites $n_sites --histogram_bins 50 --output {wildcards.species} \
-			   --biallelic --bi_INFO_fields DP_uint32 FS_float QD_float MQ_float MQRankSum_float ReadPosRankSum_float SOR_float \
-			   --bi_GT_fields DP_uint32 GQ_uint32 \
-			   --invariants --inv_INFO_fields DP_uint32 --inv_GT_fields DP_uint32 RGQ_uint32 \
-			   --multiallelic --ma_INFO_fields DP_uint32 FS_float QD_float MQ_float MQRankSum_float ReadPosRankSum_float SOR_float \
-			   --ma_GT_fields DP_uint32 GQ_uint32
-
 		cp {wildcards.species}.merged.bt.vcf.gz {output.vcf_out}
 		tabix {wildcards.species}.merged.bt.vcf.gz 
+
+		bcftools view --threads 1 {wildcards.species}.merged.bt.vcf.gz | python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species} --biallelic --invariants --multiallelic
 		cp {wildcards.species}.merged.bt.vcf.gz.tbi {output.vcf_out_index}
 		cp {wildcards.species}_table.tsv {output.vcf_stats_table}
-		cp biallelic_general.pdf {output.vcf_stats_general_biallelic}	
-		cp multiallelic_general.pdf {output.vcf_stats_general_multiallelic}	
-		cp invariant_general.pdf {output.vcf_stats_general_invariant}	
+
+
 		cp {wildcards.species}_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic}
-		cp {wildcards.species}_QUAL_multiallelic.pdf {output.vcf_stats_QUAL_multiallelic}
-		cp {wildcards.species}_QUAL_invariant.pdf {output.vcf_stats_QUAL_invariant}
-		cp {wildcards.species}_GT_counts_biallelic.pdf {output.vcf_stats_GT_counts_biallelic}
-		cp {wildcards.species}_DP_comp_biallelic.pdf {output.vcf_stats_GT_DP_biallelic}
-		cp {wildcards.species}_DP_comp_multiallelic.pdf {output.vcf_stats_GT_DP_multiallelic}
-		cp {wildcards.species}_DP_comp_invariant.pdf {output.vcf_stats_GT_DP_invariant}
-		cp {wildcards.species}_GQ_comp_biallelic.pdf {output.vcf_stats_GT_GQ_biallelic}
-		cp {wildcards.species}_GQ_comp_multiallelic.pdf {output.vcf_stats_GT_GQ_multiallelic}
-		cp {wildcards.species}_RGQ_comp_invariant.pdf {output.vcf_stats_GT_RGQ_invariant}
+		cp {wildcards.species}_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic}
 		cp {wildcards.species}_INFO_biallelic.pdf {output.vcf_stats_INFO_biallelic}
+		cp {wildcards.species}_GT_counts_biallelic.pdf {output.vcf_stats_GT_counts_biallelic}
+		cp {wildcards.species}_GT_DP_biallelic.pdf {output.vcf_stats_GT_DP_biallelic}
+		cp {wildcards.species}_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_biallelic}
+		#multiallelic
+		cp {wildcards.species}_n_alt_alleles_multiallelic.pdf {output.vcf_stats_n_alt_alleles_multiallelic}	
+		cp {wildcards.species}_QUAL_multiallelic.pdf {output.vcf_stats_QUAL_multiallelic}
+		cp {wildcards.species}_QUAL_categories_multiallelic.pdf {output.vcf_stats_QUAL_categories_multiallelic}
 		cp {wildcards.species}_INFO_multiallelic.pdf {output.vcf_stats_INFO_multiallelic}
+		cp {wildcards.species}_GT_counts_multiallelic.pdf {output.vcf_stats_GT_counts_multiallelic}
+		cp {wildcards.species}_GT_DP_multiallelic.pdf {output.vcf_stats_GT_DP_multiallelic}
+		cp {wildcards.species}_GT_GQ_multiallelic.pdf {output.vcf_stats_GT_GQ_multiallelic}
+		#invariant
+		cp {wildcards.species}_QUAL_invariant.pdf {output.vcf_stats_QUAL_invariant}
+		cp {wildcards.species}_QUAL_categories_invariant.pdf {output.vcf_stats_QUAL_categories_invariant}
 		cp {wildcards.species}_INFO_invariant.pdf {output.vcf_stats_INFO_invariant}
+		cp {wildcards.species}_GT_counts_invariant.pdf {output.vcf_stats_GT_counts_invariant}
+		cp {wildcards.species}_GT_DP_invariant.pdf {output.vcf_stats_GT_DP_invariant}
+		cp {wildcards.species}_GT_RGQ_invariant.pdf {output.vcf_stats_GT_RGQ_invariant}
+		
 		"""

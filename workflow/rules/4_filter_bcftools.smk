@@ -21,14 +21,14 @@ rule filter_bcftools_bisnp:
 		bisnp_passed=config["vcf_filtered"]+"/{species}.bipassed.bt.vcf.gz",
 		bisnp_passed_index=config["vcf_filtered"]+"/{species}.bipassed.bt.vcf.gz.tbi",
 		vcf_stats_table_bisel=config["report_dir"]+"/filterbisnp/{species}.bisel.merged.tsv",
-		vcf_stats_general_biallelic_bisel=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_general_bisel.pdf", category="filterbisnp", subcategory="general", labels={"variant type":"biallelic", "statistic":"multiple", "filter":"all biallelic SNPs"}),
 		vcf_stats_QUAL_biallelic_bisel=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_QUAL_bisel.pdf", category="filterbisnp", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL", "filter":"all biallelic SNPs"}),
+		vcf_stats_QUAL_categories_biallelic_bisel=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_QUAL__categories_bisel.pdf", category="filterbisnp", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL_categories", "filter":"all biallelic SNPs"}),
 		vcf_stats_INFO_biallelic_bisel=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_INFO_bisel.pdf", category="filterbisnp", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO", "filter":"all biallelic SNPs"}),
 		vcf_stats_GT_counts_biallelic_bisel=report(config["report_dir"]+"/filterbisnp/{species}_GT_counts_biallelic_bisel.pdf", category="filterbisnp", subcategory="Genotype counts", labels={"variant type":"biallelic", "statistic":"GT counts", "filter":"all biallelic SNPs"}),
 		vcf_stats_GT_DP_biallelic_bisel=report(config["report_dir"]+"/filterbisnp/{species}_GT_DP_biallelic_bisel.pdf", category="filterbisnp", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT DP", "filter":"all biallelic SNPs"}),
 		vcf_stats_GT_GQ_biallelic_bisel=report(config["report_dir"]+"/filterbisnp/{species}_GT_GQ_biallelic_bisel.pdf", category="filterbisnp", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT GQ", "filter":"all biallelic SNPs"}),
 		vcf_stats_table_bipassed=config["report_dir"]+"/filterbisnp/{species}.bipassed.merged.tsv",
-		vcf_stats_general_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_general_bipassed.pdf", category="filterbisnp", subcategory="general", labels={"variant type":"biallelic", "statistic":"multiple", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
+		vcf_stats_QUAL_categories_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_QUAL_categories_bipassed.pdf", category="filterbisnp", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL_categories", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
 		vcf_stats_QUAL_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_QUAL_bipassed.pdf", category="filterbisnp", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
 		vcf_stats_INFO_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_INFO_bipassed.pdf", category="filterbisnp", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
 		vcf_stats_GT_counts_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_GT_counts_biallelic_bipassed.pdf", category="filterbisnp", subcategory="Genotype counts", labels={"variant type":"biallelic", "statistic":"GT counts", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
@@ -60,29 +60,32 @@ rule filter_bcftools_bisnp:
 		if [ {config[copy_large_vcfs]} -eq 1 ]
 		then
 			cp {input} $temp_folder
-			bcftools view --threads 1 -m2 -M2 -v snps {wildcards.species}.merged.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic --bi_INFO_fields DP_uint32 FS_float QD_float MQ_float MQRankSum_float ReadPosRankSum_float SOR_float --bi_GT_fields DP_uint32 GQ_uint32) | bgzip > {wildcards.species}.bisel.bt.vcf.gz 
+			bcftools view --threads 1 -m2 -M2 -v snps {wildcards.species}.merged.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic) | bgzip > {wildcards.species}.bisel.bt.vcf.gz 
 
 		else
-			bcftools view --threads 1 -m2 -M2 -v snps {input.vcf_input} | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic --bi_INFO_fields DP_uint32 FS_float QD_float MQ_float MQRankSum_float ReadPosRankSum_float SOR_float --bi_GT_fields DP_uint32 GQ_uint32) | bgzip > {wildcards.species}.bisel.bt.vcf.gz 
+			bcftools view --threads 1 -m2 -M2 -v snps {input.vcf_input} | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic) | bgzip > {wildcards.species}.bisel.bt.vcf.gz 
 		fi
+		
 		cp {wildcards.species}.bisel_table.tsv {output.vcf_stats_table_bisel}
-		cp biallelic_general.pdf {output.vcf_stats_general_biallelic_bisel}	
+		cp {wildcards.species}.bisel_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic_bisel}
 		cp {wildcards.species}.bisel_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic_bisel}
 		cp {wildcards.species}.bisel_GT_counts_biallelic.pdf {output.vcf_stats_GT_counts_biallelic_bisel}
-		cp {wildcards.species}.bisel_DP_comp_biallelic.pdf {output.vcf_stats_GT_DP_biallelic_bisel}
-		cp {wildcards.species}.bisel_GQ_comp_biallelic.pdf {output.vcf_stats_GT_GQ_biallelic_bisel}
+		cp {wildcards.species}.bisel_GT_DP_biallelic.pdf {output.vcf_stats_GT_DP_biallelic_bisel}
+		cp {wildcards.species}.bisel_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_biallelic_bisel}
 		cp {wildcards.species}.bisel_INFO_biallelic.pdf {output.vcf_stats_INFO_biallelic_bisel}
+		
+
 		cp {wildcards.species}.bisel.bt.vcf.gz {output.bisnp_sel} &>> {log}
 		tabix {wildcards.species}.bisel.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.bisel.bt.vcf.gz.tbi {output.bisnp_sel_index} 
 		n_sites_bisel=$(grep $'biallelic\tgeneral\tsite_count' {wildcards.species}.bisel_table.tsv | cut -f 7 )
-		bcftools filter --threads 1 -m+ -s+ -e'MQ<{config[MQ_less]} | QD<{config[QD_less]} | FS>{config[FS_more]} | MQRankSum<{config[MQRS_less]} | ReadPosRankSum<{config[RPRS_less]} | SOR>{config[SOR_more]} | QUAL=\".\"' {wildcards.species}.bisel.bt.vcf.gz |  bcftools view -f.,PASS | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bisel --histogram_bins 50 --output {wildcards.species}.bipassed --biallelic --bi_INFO_fields DP_uint32 FS_float QD_float MQ_float MQRankSum_float ReadPosRankSum_float SOR_float --bi_GT_fields DP_uint32 GQ_uint32)  | bgzip > {wildcards.species}.bipassed.bt.vcf.gz
+		bcftools filter --threads 1 -m+ -s+ -e'MQ<{config[MQ_less]} | QD<{config[QD_less]} | FS>{config[FS_more]} | MQRankSum<{config[MQRS_less]} | ReadPosRankSum<{config[RPRS_less]} | SOR>{config[SOR_more]} | QUAL=\".\"' {wildcards.species}.bisel.bt.vcf.gz |  bcftools view -f.,PASS | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bisel --histogram_bins 50 --output {wildcards.species}.bipassed --biallelic)  | bgzip > {wildcards.species}.bipassed.bt.vcf.gz
 		cp {wildcards.species}.bipassed_table.tsv {output.vcf_stats_table_bipassed}
-		cp biallelic_general.pdf {output.vcf_stats_general_biallelic_bipassed}	
 		cp {wildcards.species}.bipassed_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic_bipassed}
+		cp {wildcards.species}.bipassed_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic_bipassed}
 		cp {wildcards.species}.bipassed_GT_counts_biallelic.pdf {output.vcf_stats_GT_counts_biallelic_bipassed}
-		cp {wildcards.species}.bipassed_DP_comp_biallelic.pdf {output.vcf_stats_GT_DP_biallelic_bipassed}
-		cp {wildcards.species}.bipassed_GQ_comp_biallelic.pdf {output.vcf_stats_GT_GQ_biallelic_bipassed}
+		cp {wildcards.species}.bipassed_GT_DP_biallelic.pdf {output.vcf_stats_GT_DP_biallelic_bipassed}
+		cp {wildcards.species}.bipassed_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_biallelic_bipassed}
 		cp {wildcards.species}.bipassed_INFO_biallelic.pdf {output.vcf_stats_INFO_biallelic_bipassed}
 		cp {wildcards.species}.bipassed.bt.vcf.gz {output.bisnp_passed} 
 		tabix {wildcards.species}.bipassed.bt.vcf.gz &>> {log}
@@ -146,11 +149,12 @@ rule filter_bcftools_invariants:
 		#vcf_stats_GT_DP_invariant_novarsel=report(config["report_dir"]+"/filterinvariants/{species}_GT_DP_invariant_novarsel.pdf", category="filterinvariants", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT DP", "filter":"all invariant sites"}),
 		#vcf_stats_GT_RGQ_invariant_novarsel=report(config["report_dir"]+"/filterinvariants/{species}_GT_RGQ_invariant_novarsel.pdf", category="filterinvariants", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT RGQ", "filter":"all invariant sites"}),
 		vcf_stats_table_novarpassed=config["report_dir"]+"/filterinvariants/{species}.novarpassed.merged.tsv",
-		vcf_stats_general_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_invariant_novarpassed_general.pdf", category="filterinvariants", subcategory="general", labels={"variant type":"invariant", "statistic":"multiple", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
 		vcf_stats_QUAL_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_invariant_novarpassed_QUAL.pdf", category="filterinvariants", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
-		vcf_stats_INFO_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_invariant_novarpassed_INFO.pdf", category="filterinvariants", subcategory="INFO", labels={"variant type":"invariant", "statistic":"INFO", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])})
-		#vcf_stats_GT_DP_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_GT_DP_invariant_novarpassed.pdf", category="filterinvariants", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT DP", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
-		#vcf_stats_GT_RGQ_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_GT_RGQ_invariant_novarpassed.pdf", category="filterinvariants", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT RGQ", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])})
+		vcf_stats_QUAL_categories_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_invariant_novarpassed_QUAL_categories.pdf", category="filterinvariants", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL_categories", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
+		vcf_stats_INFO_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_invariant_novarpassed_INFO.pdf", category="filterinvariants", subcategory="INFO", labels={"variant type":"invariant", "statistic":"INFO", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
+		vcf_stats_GT_count_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_GT_count_invariant_novarpassed.pdf", category="filterinvariants", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT count", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
+		vcf_stats_GT_DP_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_GT_DP_invariant_novarpassed.pdf", category="filterinvariants", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT DP", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
+		vcf_stats_GT_RGQ_invariant_novarpassed=report(config["report_dir"]+"/filterinvariants/{species}_GT_RGQ_invariant_novarpassed.pdf", category="filterinvariants", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT RGQ", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])})
 	threads: 4
 	resources:
 		mem_mb=filter_bcftools_mem_mb,
@@ -182,19 +186,20 @@ rule filter_bcftools_invariants:
 		#TODO: test if this works!
 		if [ {config[filter_qual]} -eq 1 ]
 		then
-			bcftools view --threads 1 -C 0 {wildcards.species}.merged.vcf.gz | bcftools filter -m+ -s+ -e'QUAL<{config[invariantQUAL_less]} | QUAL=\".\"' | bcftools view -f.,PASS| bcftools filter --threads 1 -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . | bcftools view -i 'F_MISSING<{config[invariant_max_missing]}'| tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.novarpassed --invariants --inv_INFO_fields DP_uint32 --inv_GT_fields DP_uint32 RGQ_uint32) | bgzip > {wildcards.species}.novarpassed.bt.vcf.gz
+			bcftools view --threads 1 -C 0 {wildcards.species}.merged.vcf.gz | bcftools filter -m+ -s+ -e'QUAL<{config[invariantQUAL_less]} | QUAL=\".\"' | bcftools view -f.,PASS| bcftools filter --threads 1 -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . | bcftools view -i 'F_MISSING<{config[invariant_max_missing]}'| tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.novarpassed --invariants) | bgzip > {wildcards.species}.novarpassed.bt.vcf.gz
 		else
-			bcftools view --threads 1 -C 0 {wildcards.species}.merged.vcf.gz | bcftools filter -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . | bcftools view -i 'F_MISSING<{config[invariant_max_missing]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.novarpassed --invariants --inv_INFO_fields DP_uint32 --inv_GT_fields DP_uint32 RGQ_uint32) | bgzip > {wildcards.species}.novarpassed.bt.vcf.gz
+			bcftools view --threads 1 -C 0 {wildcards.species}.merged.vcf.gz | bcftools filter -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . | bcftools view -i 'F_MISSING<{config[invariant_max_missing]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.novarpassed --invariants) | bgzip > {wildcards.species}.novarpassed.bt.vcf.gz
 		fi
 		cp {wildcards.species}.novarpassed_table.tsv {output.vcf_stats_table_novarpassed}
-		cp invariant_general.pdf {output.vcf_stats_general_invariant_novarpassed}	
 		cp {wildcards.species}.novarpassed_QUAL_invariant.pdf {output.vcf_stats_QUAL_invariant_novarpassed}
-	#	cp {wildcards.species}.novarpassed_RGQ_comp_invariant.pdf (output.vcf_stats_GT_RGQ_invariant_novarpassed)
+		cp {wildcards.species}.novarpassed_QUAL_categories_invariant.pdf {output.vcf_stats_QUAL_categories_invariant_novarpassed}
+		cp {wildcards.species}.novarpassed_GT_counts_invariant.pdf {output.vcf_stats_GT_count_invariant_novarpassed}
+		cp {wildcards.species}.novarpassed_GT_RGQ_invariant.pdf {output.vcf_stats_GT_RGQ_invariant_novarpassed}
+		cp {wildcards.species}.novarpassed_GT_DP_invariant.pdf {output.vcf_stats_GT_DP_invariant_novarpassed}
 		cp {wildcards.species}.novarpassed_INFO_invariant.pdf {output.vcf_stats_INFO_invariant_novarpassed}
 		cp {wildcards.species}.novarpassed.bt.vcf.gz {output.novar_passed}
 		tabix {wildcards.species}.novarpassed.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.novarpassed.bt.vcf.gz.tbi {output.novar_passed_index} 
-	#	cp {wildcards.species}.novarpassed_DP_comp_invariant.pdf (output.vcf_stats_GT_DP_invariant_novarpassed)
 		"""
 
 rule bcftools_filter_gt_snps:
@@ -209,15 +214,15 @@ rule bcftools_filter_gt_snps:
 		bigt_dp_m=config["vcf_filtered"]+"/{species}.bigt.dp.m.bt.vcf.gz",
 		bigt_dp_m_index=config["vcf_filtered"]+"/{species}.bigt.dp.m.bt.vcf.gz.tbi",
 		vcf_stats_table_bigt_dp=config["report_dir"]+"/filterbigt/{species}.bigt.dp.merged.tsv",
-		vcf_stats_general_bigt_dp=report(config["report_dir"]+"/filterbigt/{species}_bigt_dp_general.pdf", category="filterbigt", subcategory="general", labels={"variant type":"biallelic", "statistic":"multiple", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"])}),
 		vcf_stats_QUAL_bigt_dp=report(config["report_dir"]+"/filterbigt/{species}_bigt_dp_QUAL.pdf", category="filterbigt", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"])}),
+		vcf_stats_QUAL_categories_bigt_dp=report(config["report_dir"]+"/filterbigt/{species}_bigt_dp_QUAL_categories.pdf", category="filterbigt", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL_categories", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"])}),
 		vcf_stats_INFO_bigt_dp=report(config["report_dir"]+"/filterbigt/{species}_bigt_dp_INFO.pdf", category="filterbigt", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"])}),
 		vcf_stats_GT_counts_bigt_dp=report(config["report_dir"]+"/filterbigt/{species}_GT_counts_bigt_dp.pdf", category="filterbigt", subcategory="Genotype counts", labels={"variant type":"biallelic", "statistic":"GT counts", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"])}),
 		vcf_stats_GT_DP_bigt_dp=report(config["report_dir"]+"/filterbigt/{species}_GT_DP_bigt_dp.pdf", category="filterbigt", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT DP", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"])}),
 		vcf_stats_GT_GQ_bigt_dp=report(config["report_dir"]+"/filterbigt/{species}_GT_GQ_bigt_dp.pdf", category="filterbigt", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT GQ", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"])}),
 		vcf_stats_table_bigt_dp_m=config["report_dir"]+"/filterbigt/{species}.bigt.dp.m.merged.tsv",
-		vcf_stats_general_bigt_dp_m=report(config["report_dir"]+"/filterbigt/{species}_bigt_dp_m_general.pdf", category="filterbigt", subcategory="general", labels={"variant type":"biallelic", "statistic":"multiple", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_QUAL_bigt_dp_m=report(config["report_dir"]+"/filterbigt/{species}_bigt_dp_m_QUAL.pdf", category="filterbigt", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
+		vcf_stats_QUAL_categories_bigt_dp_m=report(config["report_dir"]+"/filterbigt/{species}_bigt_dp_m_QUAL_categories.pdf", category="filterbigt", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL_categories", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_INFO_bigt_dp_m=report(config["report_dir"]+"/filterbigt/{species}_bigt_dp_m_INFO.pdf", category="filterbigt", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_GT_counts_bigt_dp_m=report(config["report_dir"]+"/filterbigt/{species}_GT_counts_bigt_dp_m.pdf", category="filterbigt", subcategory="Genotype counts", labels={"variant type":"biallelic", "statistic":"GT counts", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_GT_DP_bigt_dp_m=report(config["report_dir"]+"/filterbigt/{species}_GT_DP_bigt_dp_m.pdf", category="filterbigt", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT DP", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
@@ -247,24 +252,30 @@ rule bcftools_filter_gt_snps:
 		awk '{{print$1\"\\t\"$2}}' {wildcards.species}.fasta.fai > ref.sizes
 
 		n_sites_bipassed=$(grep $'biallelic\tgeneral\tsite_count' {wildcards.species}.bipassed.merged.tsv | cut -f 7)
-		bcftools filter --threads 1 -i 'FMT/DP>{config[gen_min_depth]}' --set-GTs . {wildcards.species}.bipassed.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp --biallelic --bi_INFO_fields DP_uint32 FS_float QD_float MQ_float MQRankSum_float ReadPosRankSum_float SOR_float --bi_GT_fields DP_uint32 GQ_uint32) | bgzip > {wildcards.species}.bigt.dp.bt.vcf.gz
+		bcftools filter --threads 1 -i 'FMT/DP>{config[gen_min_depth]}' --set-GTs . {wildcards.species}.bipassed.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp --biallelic) | bgzip > {wildcards.species}.bigt.dp.bt.vcf.gz
 		cp {wildcards.species}.bigt_dp_table.tsv {output.vcf_stats_table_bigt_dp}
-		cp biallelic_general.pdf {output.vcf_stats_general_bigt_dp}	
 		cp {wildcards.species}.bigt_dp_QUAL_biallelic.pdf {output.vcf_stats_QUAL_bigt_dp}
+		cp {wildcards.species}.bigt_dp_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_bigt_dp}
 		cp {wildcards.species}.bigt_dp_GT_counts_biallelic.pdf {output.vcf_stats_GT_counts_bigt_dp}
-		cp {wildcards.species}.bigt_dp_DP_comp_biallelic.pdf {output.vcf_stats_GT_DP_bigt_dp}
-		cp {wildcards.species}.bigt_dp_GQ_comp_biallelic.pdf {output.vcf_stats_GT_GQ_bigt_dp}
+		cp {wildcards.species}.bigt_dp_GT_DP_biallelic.pdf {output.vcf_stats_GT_DP_bigt_dp}
+		cp {wildcards.species}.bigt_dp_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_bigt_dp}
 		cp {wildcards.species}.bigt_dp_INFO_biallelic.pdf {output.vcf_stats_INFO_bigt_dp}
 		cp {wildcards.species}.bigt.dp.bt.vcf.gz {output.bigt_dp}
 		tabix {wildcards.species}.bigt.dp.bt.vcf.gz  &>> {log}
 		cp {wildcards.species}.bigt.dp.bt.vcf.gz.tbi {output.bigt_dp_index}
-		bcftools view --threads 1 -m2 -v snps -i 'F_MISSING<{config[gen_max_missing]}' {wildcards.species}.bigt.dp.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp_m --biallelic --bi_INFO_fields DP_uint32 FS_float QD_float MQ_float MQRankSum_float ReadPosRankSum_float SOR_float --bi_GT_fields DP_uint32 GQ_uint32) | bgzip > {wildcards.species}.bigt.dp.m.bt.vcf.gz 
+
+		#Fix header
+		bcftools view -h {wildcards.species}.bigt.dp.bt.vcf.gz > {wildcards.species}.bigt.dp.bt.header
+		sed -i s/ID=PL,Number=G/ID=PL,Number=./g {wildcards.species}.bigt.dp.bt.header
+		bcftools reheader -h {wildcards.species}.bigt.dp.bt.header -o {wildcards.species}.bigt.dp.bt.rh.vcf.gz {wildcards.species}.bigt.dp.bt.vcf.gz
+		bcftools view -a -o {wildcards.species}.bigt.dp.bt.allele.vcf.gz -O z {wildcards.species}.bigt.dp.bt.rh.vcf.gz 
+		bcftools view --threads 1 -m2 -v snps -i 'F_MISSING<{config[gen_max_missing]}' {wildcards.species}.bigt.dp.bt.allele.vcf.gz  | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp_m --biallelic) | bgzip > {wildcards.species}.bigt.dp.m.bt.vcf.gz 
 		cp {wildcards.species}.bigt_dp_m_table.tsv {output.vcf_stats_table_bigt_dp_m}
-		cp biallelic_general.pdf {output.vcf_stats_general_bigt_dp_m}	
 		cp {wildcards.species}.bigt_dp_m_QUAL_biallelic.pdf {output.vcf_stats_QUAL_bigt_dp_m}
+		cp {wildcards.species}.bigt_dp_m_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_bigt_dp_m}
 		cp {wildcards.species}.bigt_dp_m_GT_counts_biallelic.pdf {output.vcf_stats_GT_counts_bigt_dp_m}
-		cp {wildcards.species}.bigt_dp_m_DP_comp_biallelic.pdf {output.vcf_stats_GT_DP_bigt_dp_m}
-		cp {wildcards.species}.bigt_dp_m_GQ_comp_biallelic.pdf {output.vcf_stats_GT_GQ_bigt_dp_m}
+		cp {wildcards.species}.bigt_dp_m_GT_DP_biallelic.pdf {output.vcf_stats_GT_DP_bigt_dp_m}
+		cp {wildcards.species}.bigt_dp_m_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_bigt_dp_m}
 		cp {wildcards.species}.bigt_dp_m_INFO_biallelic.pdf {output.vcf_stats_INFO_bigt_dp_m}
 		cp {wildcards.species}.bigt.dp.m.bt.vcf.gz {output.bigt_dp_m}
 		tabix {wildcards.species}.bigt.dp.m.bt.vcf.gz &>> {log}
@@ -320,16 +331,17 @@ rule bcftools_mask:
 		merged_masked=config["vcf_filtered"]+"/{species}.merged.masked.bt.vcf.gz",
 		merged_masked_index=config["vcf_filtered"]+"/{species}.merged.masked.bt.vcf.gz.tbi",
 		vcf_stats_table_mask=config["report_dir"]+"/filterbigt/{species}.bigt.merged.bt.tsv",
-		vcf_stats_general_bigt_mask=report(config["report_dir"]+"/mask/{species}_bigt_mask_general.pdf", category="mask", subcategory="general", labels={"variant type":"biallelic", "statistic":"multiple", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_QUAL_bigt_mask=report(config["report_dir"]+"/mask/{species}_bigt_mask_QUAL.pdf", category="mask", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
+		vcf_stats_QUAL_categories_bigt_mask=report(config["report_dir"]+"/mask/{species}_bigt_mask_QUAL_categories.pdf", category="mask", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL_categories", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_INFO_bigt_mask=report(config["report_dir"]+"/mask/{species}_bigt_mask_INFO.pdf", category="mask", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_GT_counts_bigt_mask=report(config["report_dir"]+"/mask/{species}_GT_counts_bigt_mask.pdf", category="mask", subcategory="Genotype counts", labels={"variant type":"biallelic", "statistic":"GT counts", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_GT_DP_bigt_mask=report(config["report_dir"]+"/mask/{species}_GT_DP_bigt_mask.pdf", category="mask", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT DP", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_GT_GQ_bigt_mask=report(config["report_dir"]+"/mask/{species}_GT_GQ_bigt_mask.pdf", category="mask", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT GQ", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		
-		vcf_stats_general_invariant_mask=report(config["report_dir"]+"/mask/{species}_invariant_mask_general.pdf", category="mask", subcategory="general", labels={"variant type":"invariant", "statistic":"multiple", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
 		vcf_stats_QUAL_invariant_mask=report(config["report_dir"]+"/mask/{species}_invariant_mask_QUAL.pdf", category="mask", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
+		vcf_stats_QUAL_categories_invariant_mask=report(config["report_dir"]+"/mask/{species}_invariant_mask_QUAL_categories.pdf", category="mask", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL_categories", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
 		vcf_stats_INFO_invariant_mask=report(config["report_dir"]+"/mask/{species}_invariant_mask_INFO.pdf", category="mask", subcategory="INFO", labels={"variant type":"invariant", "statistic":"INFO", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
+		vcf_stats_GT_counts_invariant_mask=report(config["report_dir"]+"/mask/{species}_GT_counts_invariant_mask.pdf", category="mask", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT counts", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
 		vcf_stats_GT_DP_invariant_mask=report(config["report_dir"]+"/mask/{species}_GT_DP_invariant_mask.pdf", category="mask", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT DP", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
 		vcf_stats_GT_RGQ_invariant_mask=report(config["report_dir"]+"/mask/{species}_GT_RGQ_invariant_mask.pdf", category="mask", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT RGQ", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s" % (config["invariantQUAL_less"], config["invariant_min_depth"])})
 
@@ -372,22 +384,23 @@ rule bcftools_mask:
 		n_sites_invariant=$(grep $'invariant\tgeneral\tsite_count' {wildcards.species}.novarpassed.merged.tsv | cut -f 7)
 		n_sites_total=$((n_sites_bigt+n_sites_invariant))
 		#bedtools complement -i exclude.bed -g ref.sizes > include.bed
-		bcftools filter --threads 1 -M exclude.bed -s MASK {wildcards.species}.merged.bt.vcf.gz | bcftools view -f .,PASS | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_total --histogram_bins 50 --output {wildcards.species}.mask --biallelic --bi_INFO_fields DP_uint32 FS_float QD_float MQ_float MQRankSum_float ReadPosRankSum_float SOR_float --bi_GT_fields DP_uint32 GQ_uint32 --invariants --inv_INFO_fields DP_uint32 --inv_GT_fields DP_uint32 RGQ_uint32) | bgzip > {wildcards.species}.merged.masked.bt.vcf.gz 
+		bcftools filter --threads 1 -M exclude.bed -s MASK {wildcards.species}.merged.bt.vcf.gz | bcftools view -f .,PASS | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_total --histogram_bins 50 --output {wildcards.species}.mask --biallelic --invariants) | bgzip > {wildcards.species}.merged.masked.bt.vcf.gz 
 		
 
 		cp {wildcards.species}.mask_table.tsv {output.vcf_stats_table_mask}
-		cp biallelic_general.pdf {output.vcf_stats_general_bigt_mask}	
 		cp {wildcards.species}.mask_QUAL_biallelic.pdf {output.vcf_stats_QUAL_bigt_mask}
+		cp {wildcards.species}.mask_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_bigt_mask}
 		cp {wildcards.species}.mask_GT_counts_biallelic.pdf {output.vcf_stats_GT_counts_bigt_mask}
-		cp {wildcards.species}.mask_DP_comp_biallelic.pdf {output.vcf_stats_GT_DP_bigt_mask}
-		cp {wildcards.species}.mask_GQ_comp_biallelic.pdf {output.vcf_stats_GT_GQ_bigt_mask}
+		cp {wildcards.species}.mask_GT_DP_biallelic.pdf {output.vcf_stats_GT_DP_bigt_mask}
+		cp {wildcards.species}.mask_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_bigt_mask}
 		cp {wildcards.species}.mask_INFO_biallelic.pdf {output.vcf_stats_INFO_bigt_mask}
 
-		cp invariant_general.pdf {output.vcf_stats_general_invariant_mask}	
 		cp {wildcards.species}.mask_QUAL_invariant.pdf {output.vcf_stats_QUAL_invariant_mask}
-		cp {wildcards.species}.mask_RGQ_comp_invariant.pdf {output.vcf_stats_GT_RGQ_invariant_mask}
+		cp {wildcards.species}.mask_QUAL_categories_invariant.pdf {output.vcf_stats_QUAL_categories_invariant_mask}
+		cp {wildcards.species}.mask_GT_counts_invariant.pdf {output.vcf_stats_GT_counts_invariant_mask}
+		cp {wildcards.species}.mask_GT_RGQ_invariant.pdf {output.vcf_stats_GT_RGQ_invariant_mask}
 		cp {wildcards.species}.mask_INFO_invariant.pdf {output.vcf_stats_INFO_invariant_mask}
-		cp {wildcards.species}.mask_DP_comp_invariant.pdf {output.vcf_stats_GT_DP_invariant_mask}
+		cp {wildcards.species}.mask_GT_DP_invariant.pdf {output.vcf_stats_GT_DP_invariant_mask}
 		cp {wildcards.species}.merged.masked.bt.vcf.gz {output.merged_masked}
 		tabix {wildcards.species}.merged.masked.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.merged.masked.bt.vcf.gz.tbi {output.merged_masked_index}
@@ -404,15 +417,15 @@ rule bcftools_filter_fourfold:
 		fourfold=config["vcf_filtered"]+"/{species}.fourfold.bt.vcf.gz",
 		fourfold_index=config["vcf_filtered"]+"/{species}.fourfold.bt.vcf.gz.tbi",
 		vcf_stats_table_fourfold=config["report_dir"]+"/filterbigt/{species}.bigt.dp.m.merged.tsv",
-		vcf_stats_general_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_bigt_fourfold_general.pdf", category="fourfold", subcategory="general", labels={"variant type":"biallelic", "statistic":"multiple", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_QUAL_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_bigt_fourfold_QUAL.pdf", category="fourfold", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
+		vcf_stats_QUAL_categories_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_bigt_fourfold_QUAL_categories.pdf", category="fourfold", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL_categories", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_INFO_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_bigt_fourfold_INFO.pdf", category="fourfold", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_GT_counts_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_GT_counts_bigt_fourfold.pdf", category="fourfold", subcategory="Genotype counts", labels={"variant type":"biallelic", "statistic":"GT counts", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_GT_DP_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_GT_DP_bigt_fourfold.pdf", category="fourfold", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT DP", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_GT_GQ_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_GT_GQ_bigt_fourfold.pdf", category="fourfold", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT GQ", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		
-		vcf_stats_general_invariant_fourfold=report(config["report_dir"]+"/fourfold/{species}_invariant_fourfold_general.pdf", category="fourfold", subcategory="general", labels={"variant type":"invariant", "statistic":"multiple", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
 		vcf_stats_QUAL_invariant_fourfold=report(config["report_dir"]+"/fourfold/{species}_invariant_fourfold_QUAL.pdf", category="fourfold", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
+		vcf_stats_QUAL_categories_invariant_fourfold=report(config["report_dir"]+"/fourfold/{species}_invariant_fourfold_QUAL_categories.pdf", category="fourfold", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL_categories", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
 		vcf_stats_INFO_invariant_fourfold=report(config["report_dir"]+"/fourfold/{species}_invariant_fourfold_INFO.pdf", category="fourfold", subcategory="INFO", labels={"variant type":"invariant", "statistic":"INFO", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
 		vcf_stats_GT_DP_invariant_fourfold=report(config["report_dir"]+"/fourfold/{species}_GT_DP_invariant_fourfold.pdf", category="fourfold", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT DP", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"])}),
 		vcf_stats_GT_RGQ_invariant_fourfold=report(config["report_dir"]+"/fourfold/{species}_GT_RGQ_invariant_fourfold.pdf", category="fourfold", subcategory="Genotype stats", labels={"variant type":"invariant", "statistic":"GT RGQ", "filter":"QUAL<%s, GT DP<%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"], config["invariant_max_missing"]) if config["filter_qual"]==1 else "GT DP>%s, MaxMissing=%s, fourfold" % (config["invariantQUAL_less"], config["invariant_min_depth"])})
@@ -442,20 +455,20 @@ rule bcftools_filter_fourfold:
 		n_sites_total=$((n_sites_bi+n_sites_invariant))
 		cd $temp_folder
 		fourfold_sites=$(awk -F/ '{{print $NF}}' <<< {input.fourfold_sites})
-		bcftools view --threads 1 -R $fourfold_sites {wildcards.species}.merged.masked.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_total --histogram_bins 50 --output {wildcards.species}.fourfold --biallelic --bi_INFO_fields DP_uint32 FS_float QD_float MQ_float MQRankSum_float ReadPosRankSum_float SOR_float --bi_GT_fields DP_uint32 GQ_uint32 --invariants --inv_INFO_fields DP_uint32 --inv_GT_fields DP_uint32 RGQ_uint32) | bgzip >{wildcards.species}.fourfold.bt.vcf.gz 
+		bcftools view --threads 1 -R $fourfold_sites {wildcards.species}.merged.masked.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_total --histogram_bins 50 --output {wildcards.species}.fourfold --biallelic --invariants) | bgzip >{wildcards.species}.fourfold.bt.vcf.gz 
 		cp {wildcards.species}.fourfold_table.tsv {output.vcf_stats_table_fourfold}
-		cp biallelic_general.pdf {output.vcf_stats_general_bigt_fourfold}	
 		cp {wildcards.species}.fourfold_QUAL_biallelic.pdf {output.vcf_stats_QUAL_bigt_fourfold}
+		cp {wildcards.species}.fourfold_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_bigt_fourfold}
 		cp {wildcards.species}.fourfold_GT_counts_biallelic.pdf {output.vcf_stats_GT_counts_bigt_fourfold}
-		cp {wildcards.species}.fourfold_DP_comp_biallelic.pdf {output.vcf_stats_GT_DP_bigt_fourfold}
-		cp {wildcards.species}.fourfold_GQ_comp_biallelic.pdf {output.vcf_stats_GT_GQ_bigt_fourfold}
+		cp {wildcards.species}.fourfold_GT_DP_biallelic.pdf {output.vcf_stats_GT_DP_bigt_fourfold}
+		cp {wildcards.species}.fourfold_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_bigt_fourfold}
 		cp {wildcards.species}.fourfold_INFO_biallelic.pdf {output.vcf_stats_INFO_bigt_fourfold}
 
-		cp invariant_general.pdf {output.vcf_stats_general_invariant_fourfold}	
 		cp {wildcards.species}.fourfold_QUAL_invariant.pdf {output.vcf_stats_QUAL_invariant_fourfold}
-		cp {wildcards.species}.fourfold_RGQ_comp_invariant.pdf {output.vcf_stats_GT_RGQ_invariant_fourfold}
+		cp {wildcards.species}.fourfold_QUAL_categories_invariant.pdf {output.vcf_stats_QUAL_categories_invariant_fourfold}
+		cp {wildcards.species}.fourfold_GT_RGQ_invariant.pdf {output.vcf_stats_GT_RGQ_invariant_fourfold}
 		cp {wildcards.species}.fourfold_INFO_invariant.pdf {output.vcf_stats_INFO_invariant_fourfold}
-		cp {wildcards.species}.fourfold_DP_comp_invariant.pdf {output.vcf_stats_GT_DP_invariant_fourfold}
+		cp {wildcards.species}.fourfold_GT_DP_invariant.pdf {output.vcf_stats_GT_DP_invariant_fourfold}
 
 		cp {wildcards.species}.fourfold.bt.vcf.gz {output.fourfold}
 		tabix {wildcards.species}.fourfold.bt.vcf.gz

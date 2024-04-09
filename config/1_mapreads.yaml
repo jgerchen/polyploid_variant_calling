@@ -1,8 +1,6 @@
 run_fastqc: 1
 trim_reads: 1
-plot_bamstats: 1
-#required for any step before population level genotyping. Deactivate this only if you have a finished VCF file and just want to filter it without snakemake looking for fastq files from the sample list
-find_fastq_files: 1
+plot_bamstats: 0
 #list of regular expression pairs used to identify PE read pairs. Pairs are separated with "," and forward and reverse REs of the same pair with ":". 
 paired_end_res: ".*R1.*:.*R2.*,.*fwd.*:.*rev.*"
 #additional options for trimmomatic
