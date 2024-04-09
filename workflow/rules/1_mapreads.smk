@@ -124,11 +124,17 @@ rule trimmomatic:
 		rev_reads_trimmed=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_R2.fastq.gz",
 		rev_reads_unpaired=config["fastq_trimmed_dir"]+"/{sample}_{lib}_trimmed_U2.fastq.gz",
 		pre_fwd=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_fwd.html", category="trimmomatic", subcategory="fastQC before trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1"}) if config["run_fastqc"]==1 else [],
+		pre_fwd_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_fwd.zip" if config["run_fastqc"]==1 else [],
 		pre_rev=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_rev.html", category="trimmomatic", subcategory="fastQC before trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2"}) if config["run_fastqc"]==1 else [],
+		pre_rev_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_rev.zip" if config["run_fastqc"]==1 else [],
 		post_fwd_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Yes"}) if config["run_fastqc"]==True else [],
+		post_fwd_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.zip" if config["run_fastqc"]==True else [],
 		post_rev_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Yes"}) if config["run_fastqc"]==True else [],
+		post_rev_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.zip" if config["run_fastqc"]==True else [],
 		post_fwd_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Singleton"}) if config["run_fastqc"]==True else [],
-		post_rev_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Singleton"}) if config["run_fastqc"]==True else []
+		post_fwd_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.zip" if config["run_fastqc"]==True else [],
+		post_rev_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Singleton"}) if config["run_fastqc"]==True else [],
+		post_rev_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.zip" if config["run_fastqc"]==True else []
 
 	threads: 4
 	resources:
@@ -158,7 +164,9 @@ rule trimmomatic:
 			mkdir fastqc_pre_out
 			fastqc -o fastqc_pre_out -t {threads} -f fastq  *.fastq.gz &>>{log}
 			cp fastqc_pre_out/*input_fwd_reads*.html {output.pre_fwd}
+			cp fastqc_pre_out/*input_fwd_reads*.zip {output.pre_fwd_zip}
 			cp fastqc_pre_out/*input_rev_reads*.html {output.pre_rev}
+			cp fastqc_pre_out/*input_rev_reads*.zip {output.pre_rev_zip}
 		fi
 
 		adapter_file=$(awk -F/ '{{print $NF}}' <<< {input.adapter_file} )
@@ -168,9 +176,13 @@ rule trimmomatic:
 			mkdir fastqc_post_out
 			fastqc -o fastqc_post_out -t {threads} -f fastq  output_{{forward,reverse}}_{{paired,unpaired}}.fq.gz
 			cp fastqc_post_out/*forward_paired*.html {output.post_fwd_paired}
+			cp fastqc_post_out/*forward_paired*.zip {output.post_fwd_paired_zip}
 			cp fastqc_post_out/*reverse_paired*.html {output.post_rev_paired}
+			cp fastqc_post_out/*reverse_paired*.zip {output.post_rev_paired_zip}
 			cp fastqc_post_out/*forward_unpaired*.html {output.post_fwd_unpaired}
+			cp fastqc_post_out/*forward_unpaired*.zip {output.post_fwd_unpaired_zip}
 			cp fastqc_post_out/*reverse_unpaired*.html {output.post_rev_unpaired}
+			cp fastqc_post_out/*reverse_unpaired*.zip {output.post_rev_unpaired_zip}
 		fi
 		#cat trimmomatic.log >> {log}
 		cp output_forward_paired.fq.gz {output.fwd_reads_trimmed}	
