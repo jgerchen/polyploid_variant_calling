@@ -364,7 +364,7 @@ rule bam_depth:
 		stats_depth_contig=config["report_dir"]+"/bam_depth/{species}_{sample}.chr.stat.gz",
 		stats_depth_contig_clean=config["report_dir"]+"/bam_depth/{species}_{sample}.chr.clean.stat.gz",
 		stats_depth_window=config["report_dir"]+"/bam_depth/{species}_{sample}.win.stat.gz"
-	threads: 6
+	threads: 2
 	resources:
 		mem_mb=bam_depth_mem_mb,
 		disk_mb=bam_depth_disk_mb,

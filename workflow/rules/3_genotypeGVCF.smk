@@ -46,7 +46,7 @@ rule GenotypeGenomicsDBSub:
 		sub_interval={params.sub_interval}
 		if [[ $sub_interval = *','* ]]
 		then
-			echo $sub_interval | sed 's/,/\n/g' > sub_intervals.list
+			echo $sub_interval | sed 's/,/\\n/g' > sub_intervals.list
 			sub_interval=sub_intervals.list
 		fi
 		$GATK4 --java-options \"-Xmx{resources[mem_mb]}m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
