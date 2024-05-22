@@ -268,8 +268,7 @@ rule bcftools_filter_gt_snps:
 		bcftools view -h {wildcards.species}.bigt.dp.bt.vcf.gz > {wildcards.species}.bigt.dp.bt.header
 		sed -i s/ID=PL,Number=G/ID=PL,Number=./g {wildcards.species}.bigt.dp.bt.header
 		bcftools reheader -h {wildcards.species}.bigt.dp.bt.header -o {wildcards.species}.bigt.dp.bt.rh.vcf.gz {wildcards.species}.bigt.dp.bt.vcf.gz
-		bcftools view -a -o {wildcards.species}.bigt.dp.bt.allele.vcf.gz -O z {wildcards.species}.bigt.dp.bt.rh.vcf.gz 
-		bcftools view --threads 1 -m2 -v snps -i 'F_MISSING<{config[gen_max_missing]}' {wildcards.species}.bigt.dp.bt.allele.vcf.gz  | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp_m --biallelic) | bgzip > {wildcards.species}.bigt.dp.m.bt.vcf.gz 
+		bcftools +fill-AN-AC {wildcards.species}.bigt.dp.bt.rh.vcf.gz | bcftools view -a | bcftools view -m2 -v snps -i 'F_MISSING<{config[gen_max_missing]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp_m --biallelic) | bgzip > {wildcards.species}.bigt.dp.m.bt.vcf.gz 
 		cp {wildcards.species}.bigt_dp_m_table.tsv {output.vcf_stats_table_bigt_dp_m}
 		cp {wildcards.species}.bigt_dp_m_QUAL_biallelic.pdf {output.vcf_stats_QUAL_bigt_dp_m}
 		cp {wildcards.species}.bigt_dp_m_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_bigt_dp_m}
@@ -368,9 +367,9 @@ rule bcftools_mask:
 		cd $temp_folder
 		#get depthmask file name
 		depthmask=$(awk -F/ '{{print $NF}}' <<< {input.depthmask})
-		if [ {config[hetmask]} != "None" ]
+		if [ "{config[hetmask]}" != "None" ]
 		then
-			hetmask=$(awk -F/ '{{print $NF}}' <<< {input.hetmask})
+			hetmask=$(awk -F/ '{{print $NF}}' <<< {config[hetmask]})
 			bedtools merge -i $depthmask -i $hetmask > exclude.bed
 		else
 			mv $depthmask exclude.bed
@@ -523,7 +522,8 @@ rule make_depth_mask_bt:
 		echo $vcf_n_samples
 		n_excess_depth=$(echo '{config[depthmask_prop_excess_depth]} * '$vcf_n_samples | bc)
 		echo $n_excess_depth
-		python3 make_depth_mask.py -v {wildcards.species}.merged.bt.vcf.gz -o out_file.tsv -c counts_out.tsv -p hist_out.tsv -n $n_excess_depth -l $n_loci
+		min_depth=$(({config[gen_min_depth]}+1))
+		python3 make_depth_mask.py -v {wildcards.species}.merged.bt.vcf.gz -o out_file.tsv -c counts_out.tsv -p hist_out.tsv -n $n_excess_depth -l $n_loci -m $min_depth
 		cp out_file.tsv {output.depth_out}
 		cp counts_out.tsv {output.depth_counts}
 		cp hist_out.tsv {output.depth_hist}

@@ -3,11 +3,16 @@ GenotypeGenomicsDBSub_mem_mb: 50000
 GenotypeGenomicsDBSub_disk_mb: 50000
 GenotypeGenomicsDBSub_runtime: "24h"
 #default resources for rule make_depth_mask
-make_depth_mask_mem_mb: 64000
+make_depth_mask_mem_mb: 250000
 make_depth_mask_disk_mb: 40000
 make_depth_mask_runtime: "24h"
+#default resources for rule get_subVCF_stats
+subVCF_stats_mem_mb: 64000
+subVCF_stats_disk_mb: 40000
+subVCF_stats_runtime: "12h"
 #default resources for rule MergeSubVCFsbcftools
-MergeSubVCFsbcftools_mem_mb: 196000
+MergeSubVCFsbcftools_mem_mb: 64000
 MergeSubVCFsbcftools_disk_mb: 200000
-MergeSubVCFsbcftools_runtime: "24h"
-
+MergeSubVCFsbcftools_runtime: "12h"
+#When set to 1, it ignores if GenotypeGVCF crashes and copies the output file anyway. Use with caution!
+GATK_GenotypeGVCF_ignore_crash: 0

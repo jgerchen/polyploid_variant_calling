@@ -46,11 +46,56 @@ rule GenotypeGenomicsDBSub:
 		sub_interval={params.sub_interval}
 		if [[ $sub_interval = *','* ]]
 		then
-			echo $sub_interval | sed 's/,/\\n/g' > sub_intervals.list
+			echo $sub_interval | sed -e $'s/,/\\n/g' > sub_intervals.list
 			sub_interval=sub_intervals.list
 		fi
-		$GATK4 --java-options \"-Xmx{resources[mem_mb]}m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
+		if [ {config[GATK_GenotypeGVCF_ignore_crash]} -eq 1  ]
+		then
+			! $GATK4 --java-options \"-Xmx{resources[mem_mb]}m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
+		else
+			$GATK4 --java-options \"-Xmx{resources[mem_mb]}m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
+		fi
 		cp {wildcards.species}_{wildcards.sub}.vcf.gz {output} 
+		"""
+
+
+def get_subVCF_stats_mem_mb(wildcards, attempt):
+	return int(config["subVCF_stats_mem_mb"]+(config["subVCF_stats_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
+def get_subVCF_stats_disk_mb(wildcards, attempt):
+	return int(config["subVCF_stats_disk_mb"]+(config["subVCF_stats_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
+def get_subVCF_stats_runtime(wildcards, attempt):
+	subVCF_stats_runtime_seconds=parse_timespan(config["subVCF_stats_runtime"])
+	return str(subVCF_stats_runtime_seconds+int((subVCF_stats_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+
+rule get_subVCF_stats:
+	input:
+		out_vcf=config["vcf_dir"]+"/{species}_{sub}.vcf.gz"
+	output:
+		vcf_stats_pickle=config["report_dir"]+"/MergeSubVCFs/{species}_{sub}.vcfstats.pickle"
+	threads: 2
+	resources:
+		mem_mb=get_subVCF_stats_mem_mb,
+		disk_mb=get_subVCF_stats_disk_mb,
+		runtime=get_subVCF_stats_runtime
+	params:
+		bcftools_pickle_script=workflow.source_path("../scripts/parse_bcftools_stdout_pickle.py")
+	log:
+		config["log_dir"]+"/get_subVCF_stats_{species}_{sub}.log"
+	shell:
+		"""
+		temp_folder={config[temp_dir]}/subVCF_stats_{wildcards.species}_{wildcards.sub}
+		mkdir -p $temp_folder
+		trap 'rm -rf $temp_folder' TERM EXIT
+		if [ {config[load_cluster_code]} -eq 1 ]
+		then
+			source {config[cluster_code_dir]}/4_filter_bcftools.sh
+		fi
+		cp {input} $temp_folder
+		cp {params.bcftools_pickle_script} $temp_folder
+		cd $temp_folder
+		vcf_n_sites=$(bcftools view --threads 1 {wildcards.species}_{wildcards.sub}.vcf.gz | grep -c ^[^#])
+		bcftools view --threads 1 {wildcards.species}_{wildcards.sub}.vcf.gz | python3 parse_bcftools_stdout_pickle.py --n_sites $vcf_n_sites --output {wildcards.species}_{wildcards.sub} --invariants --biallelic --multiallelic
+		cp {wildcards.species}_{wildcards.sub}.pickle {output.vcf_stats_pickle} 
 		"""
 
 def MergeSubVCFsbcftools_mem_mb(wildcards, attempt):
@@ -65,6 +110,7 @@ def MergeSubVCFsbcftools_runtime(wildcards, attempt):
 rule MergeSubVCFsbcftools:
 	input:
 		out_vcf=expand(config["vcf_dir"]+"/{{species}}_{sub}.vcf.gz", sub=interval_list),
+		vcf_stats_pickles=expand(config["report_dir"]+"/MergeSubVCFs/{{species}}_{sub}.vcfstats.pickle", sub=interval_list),
 		sub_interval_list=config["sub_intervals"]
 	output:
 		vcf_out=config["vcf_dir"]+"/{species}.merged.vcf.gz",
@@ -80,7 +126,7 @@ rule MergeSubVCFsbcftools:
 		vcf_stats_QUAL_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_QUAL.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"multiallelic", "statistic":"QUAL"}),
 		vcf_stats_QUAL_categories_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_QUAL_categories.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"multiallelic", "statistic":"QUAL_categories"}),
 		vcf_stats_INFO_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_multiallelic_INFO.pdf", category="MergeSubVCFs", subcategory="INFO", labels={"variant type":"multiallelic", "statistic":"INFO"}),
-		vcf_stats_GT_counts_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_counts_multiallelic.pdf", category="MergeSubVCFs", subcategory="Genotype counts", labels={"variant type":"multiallelic", "statistic":"GT counts"}),
+#		vcf_stats_GT_counts_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_counts_multiallelic.pdf", category="MergeSubVCFs", subcategory="Genotype counts", labels={"variant type":"multiallelic", "statistic":"GT counts"}),
 		vcf_stats_GT_DP_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_DP_multiallelic.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"multiallelic", "statistic":"GT DP"}),
 		vcf_stats_GT_GQ_multiallelic=report(config["report_dir"]+"/MergeSubVCFs/{species}_GT_GQ_multiallelic.pdf", category="MergeSubVCFs", subcategory="Genotype stats", labels={"variant type":"multiallelic", "statistic":"GT GQ"}),
 		vcf_stats_QUAL_invariant=report(config["report_dir"]+"/MergeSubVCFs/{species}_invariant_QUAL.pdf", category="MergeSubVCFs", subcategory="general", labels={"variant type":"invariant", "statistic":"QUAL"}),
@@ -95,7 +141,7 @@ rule MergeSubVCFsbcftools:
 		disk_mb=MergeSubVCFsbcftools_disk_mb,
 		runtime=MergeSubVCFsbcftools_runtime
 	params:
-		bcftools_parse_script=workflow.source_path("../scripts/parse_bcftools_stdout.py")
+		combine_stat_pickles=workflow.source_path("../scripts/combine_parse_bcftools_pickles.py")
 	log:
 		config["log_dir"]+"/MergeSubVCFsbcftools_{species}.log"
 	shell:
@@ -108,21 +154,19 @@ rule MergeSubVCFsbcftools:
 			source {config[cluster_code_dir]}/4_filter_bcftools.sh
 		fi
 		cp {input} $temp_folder
-		cp {params.bcftools_parse_script} $temp_folder
+		cp {params.combine_stat_pickles} $temp_folder
 		cd $temp_folder
 		sub_intervals=$(awk -F/ '{{print $NF}}' <<< {input.sub_interval_list})
 		#TODO: does this actually work??? No it doesn't! Fix it...
 		awk '{{print "{wildcards.species}_"$1".vcf.gz"}}' $sub_intervals > input_files.list
+		awk '{{print "{wildcards.species}_"$1".vcfstats.pickle"}}' $sub_intervals > input_pickles.list
 		bcftools concat -f input_files.list -n -o {wildcards.species}.merged.bt.vcf.gz
-		n_sites=$(bcftools view --threads 1 {wildcards.species}.merged.bt.vcf.gz | grep -c ^[^#])
 		cp {wildcards.species}.merged.bt.vcf.gz {output.vcf_out}
 		tabix {wildcards.species}.merged.bt.vcf.gz 
 
-		bcftools view --threads 1 {wildcards.species}.merged.bt.vcf.gz | python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species} --biallelic --invariants --multiallelic
+		python3 combine_parse_bcftools_pickles.py --histogram_bins 50 --output {wildcards.species} --biallelic --invariants --multiallelic --pickle_list input_pickles.list
 		cp {wildcards.species}.merged.bt.vcf.gz.tbi {output.vcf_out_index}
 		cp {wildcards.species}_table.tsv {output.vcf_stats_table}
-
-
 		cp {wildcards.species}_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic}
 		cp {wildcards.species}_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic}
 		cp {wildcards.species}_INFO_biallelic.pdf {output.vcf_stats_INFO_biallelic}
@@ -134,15 +178,13 @@ rule MergeSubVCFsbcftools:
 		cp {wildcards.species}_QUAL_multiallelic.pdf {output.vcf_stats_QUAL_multiallelic}
 		cp {wildcards.species}_QUAL_categories_multiallelic.pdf {output.vcf_stats_QUAL_categories_multiallelic}
 		cp {wildcards.species}_INFO_multiallelic.pdf {output.vcf_stats_INFO_multiallelic}
-		cp {wildcards.species}_GT_counts_multiallelic.pdf {output.vcf_stats_GT_counts_multiallelic}
 		cp {wildcards.species}_GT_DP_multiallelic.pdf {output.vcf_stats_GT_DP_multiallelic}
 		cp {wildcards.species}_GT_GQ_multiallelic.pdf {output.vcf_stats_GT_GQ_multiallelic}
 		#invariant
 		cp {wildcards.species}_QUAL_invariant.pdf {output.vcf_stats_QUAL_invariant}
 		cp {wildcards.species}_QUAL_categories_invariant.pdf {output.vcf_stats_QUAL_categories_invariant}
 		cp {wildcards.species}_INFO_invariant.pdf {output.vcf_stats_INFO_invariant}
-		cp {wildcards.species}_GT_counts_invariant.pdf {output.vcf_stats_GT_counts_invariant}
 		cp {wildcards.species}_GT_DP_invariant.pdf {output.vcf_stats_GT_DP_invariant}
 		cp {wildcards.species}_GT_RGQ_invariant.pdf {output.vcf_stats_GT_RGQ_invariant}
-		
+		cp {wildcards.species}_GT_counts_invariant.pdf {output.vcf_stats_GT_counts_invariant}
 		"""

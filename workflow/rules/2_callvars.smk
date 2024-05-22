@@ -175,7 +175,7 @@ rule GenomicsDBimportSub:
 		get_samples_genomicsdb
 	output:
 		directory(config["gvcf_dir"]+"/{species}_{sub}_GenomicsDB")
-	threads: 4
+	threads: 1
 	resources:
 		mem_mb=GenomicsDBimportSub_mem_mb,
 		disk_mb=GenomicsDBimportSub_disk_mb,
@@ -199,7 +199,7 @@ rule GenomicsDBimportSub:
 		sub_interval={params.sub_interval}
 		if [[ $sub_interval = *','* ]]
 		then
-			echo $sub_interval | sed 's/,/\n/g' > sub_intervals.list
+			echo $sub_interval | sed -e $'s/,/\\\n/g' > sub_intervals.list
 			sub_interval=sub_intervals.list
 		fi
 		touch cohort.sample_map

@@ -4,246 +4,111 @@ import numpy
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 import time
-
+import pickle
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--n_sites')
 parser.add_argument('--output')
 parser.add_argument('--histogram_bins')
 parser.add_argument('--invariants', action='store_true')
 parser.add_argument('--biallelic', action='store_true')
 parser.add_argument('--multiallelic', action='store_true')
+parser.add_argument('--pickle_list')
+
+
 args=parser.parse_args()
 
-n_sites=int(args.n_sites)
 hist_bins=int(args.histogram_bins)
 output=args.output
 check_invariants=args.invariants
 check_biallelic=args.biallelic
 check_multiallelic=args.multiallelic
-line_counter=0
+pickle_list=args.pickle_list
 
-#print("Allocating main array...")
-main_array_time=time.time()
-#create arrays
-#number of alt alleles
-n_alt_array=numpy.zeros(n_sites, dtype=numpy.uint16)
-#QUAL
-QUAL_array=numpy.empty(n_sites)
-QUAL_array.fill(numpy.nan)
+line_counter=0
+sample_list=[]
+n_alt_array=numpy.zeros(0, dtype=numpy.uint16)
+QUAL_array=numpy.empty(0)
 if check_biallelic==True:
 	QUAL_count_dict_bi={}
+	gt_bi_GT_dict=[]
+	gt_bi_depth_count_dict=[]
+	gt_bi_GQ_count_dict=[]
+
+
 if check_invariants==True:
 	QUAL_count_dict_inv={}
+	gt_inv_GT_dict=[]
+	gt_inv_depth_count_dict=[]
+	gt_inv_RGQ_count_dict=[]
 if check_multiallelic==True:
 	QUAL_count_dict_ma={}
-
-#Not included: FIlters -> we typically only use hard filtering
-
-
-#INFO do we need more stats???
-#Invariants only DP, uint32 with 0 for missing?
-info_DP_array=numpy.zeros(n_sites, dtype=numpy.uint32)
-
-#others DP+GATK best practices: DP, FS, QD, MQ,
+	gt_ma_GT_dict=[]
+	gt_ma_depth_count_dict=[]
+	gt_ma_GQ_count_dict=[]
 if check_biallelic==True or check_multiallelic==True:
-	info_array_GATK_bp=numpy.empty((n_sites, 6))
-	info_array_GATK_bp.fill(numpy.nan)
+	info_array_GATK_bp=numpy.empty((0,6))
 	GATK_index_array={"FS":0, "QD":1, "MQ":2, "MQRankSum":3, "ReadPosRankSum":4, "SOR":5}
 
-#print("Done allocating main arrays in %s s" % str(time.time()-main_array_time))
-
-#print("Reading vcf file...")
-vcf_read_time=time.time()
-
-line = sys.stdin.readline()
-while line:
-	if line[0]=="#":
-		if line[0:6]=="#CHROM":
-			sample_list=line.strip().split("\t")[9:]
-			n_samples=len(sample_list)		
-			#DEPTH array					
-			#GT_depth_array=numpy.zeros((n_sites, n_samples), dtype=numpy.uint32)
-			#DEPTH count dicts instead! But for each type of variant
-			#Try to put GQ/RGQ in arrays! No! use count dicts!
 
 
+info_DP_array=numpy.empty(0, dtype=numpy.uint32)
 
 
-				#GQ_array=numpy.empty((n_sites, n_samples))
-				#GQ_array.fill(numpy.nan)
-				#RGQ_array=numpy.empty((n_sites, n_samples))
-				#RGQ_array.fill(numpy.nan)
-
+#load pickles!
+with open(pickle_list) as pickle_input:
+	for pickle_line in pickle_input:
+		with open(pickle_line.strip(), 'rb') as f:
+			pickle_data = pickle.load(f)
+			line_counter+=pickle_data["line_counter"]
+			sample_list=pickle_data["sample_list"]
+			n_samples=len(sample_list)
+			n_alt_array=numpy.concatenate((n_alt_array, pickle_data["n_alt_array"]))
+			QUAL_array=numpy.concatenate((QUAL_array, pickle_data["QUAL_array"]))
+			info_DP_array=numpy.concatenate((info_DP_array, pickle_data["info_DP_array"]))
+			if check_biallelic==True or check_multiallelic==True:
+				info_array_GATK_bp=numpy.concatenate((info_array_GATK_bp, pickle_data["info_array_GATK_bp"]), axis=0)
 			if check_biallelic==True:
-			#	gt_bi_GQ_dict=[{i_gq:0 for i_gq in range(100)} for i_s in sample_list]
-				gt_bi_GT_dict=[{} for i_s in sample_list]
-				gt_bi_depth_count_dict=[{d:0 for d in range(100)} for u in range(n_samples)]
-				gt_bi_max_depth=0
-				gt_bi_GQ_count_dict=[{d:0 for d in range(100)} for u in range(n_samples)]
-			if check_multiallelic==True:
-			#	gt_ma_GQ_dict=[{i_gq:0 for i_gq in range(100)} for i_s in sample_list]
-				gt_ma_GT_dict=[{} for i_s in sample_list]
-				gt_ma_depth_count_dict=[{d:0 for d in range(100)} for u in range(n_samples)]
-				gt_ma_max_depth=0
-				gt_ma_GQ_count_dict=[{d:0 for d in range(100)} for u in range(n_samples)]
+				QUAL_count_dict_bi={x: QUAL_count_dict_bi.get(x, 0) + pickle_data["QUAL_count_dict_bi"].get(x, 0) for x in set(QUAL_count_dict_bi).union(pickle_data["QUAL_count_dict_bi"])}
+				if len(gt_bi_GT_dict)==0:
+					#Check if arrays are empty, if yes just copy from pickle
+					gt_bi_GT_dict=pickle_data["gt_bi_GT_dict"]
+					gt_bi_depth_count_dict=pickle_data["gt_bi_depth_count_dict"]				
+					gt_bi_GQ_count_dict=pickle_data["gt_bi_GQ_count_dict"]				
+				else:
+					#Otherwise iterate over samples and merge dicts
+					for sample_i in range(len(sample_list)):
+						gt_bi_GT_dict[sample_i]={x: gt_bi_GT_dict[sample_i].get(x, 0) + pickle_data["gt_bi_GT_dict"][sample_i].get(x, 0) for x in set(gt_bi_GT_dict[sample_i]).union(pickle_data["gt_bi_GT_dict"][sample_i])}
+						gt_bi_depth_count_dict[sample_i]={x: gt_bi_depth_count_dict[sample_i].get(x, 0) + pickle_data["gt_bi_depth_count_dict"][sample_i].get(x, 0) for x in set(gt_bi_depth_count_dict[sample_i]).union(pickle_data["gt_bi_depth_count_dict"][sample_i])}
+						gt_bi_GQ_count_dict[sample_i]={x: gt_bi_GQ_count_dict[sample_i].get(x, 0) + pickle_data["gt_bi_GQ_count_dict"][sample_i].get(x, 0) for x in set(gt_bi_GQ_count_dict[sample_i]).union(pickle_data["gt_bi_GQ_count_dict"][sample_i])}
+
+
 			if check_invariants==True:
-			#	gt_inv_RGQ_dict=gt_bi_GQ_dict=[{i_gq:0 for i_gq in range(100)} for i_s in sample_list]
-				gt_inv_GT_dict=[{} for i_s in sample_list]
-				gt_inv_depth_count_dict=[{d:0 for d in range(100)} for u in range(n_samples)]
-				gt_inv_max_depth=0
-				gt_inv_RGQ_count_dict=[{d:0 for d in range(100)} for u in range(n_samples)]
-
-	else:
-		line_cats=line.strip().split("\t")
-		assert(len(line_cats)>8),"Variant line sould be at least 8 categories, but line %s has only %s" % (line, len(line_cats))
-		ref=line_cats[3]
-		alt=line_cats[4]
-		if alt==".":
-			n_alt_array[line_counter]=0
-			n_alt_alleles=0
-		else:
-			n_alt_alleles=len(alt.split(","))
-			n_alt_array[line_counter]=n_alt_alleles			
-		#If no alt alleles site must be invariant
-
-		qual=line_cats[5]
-		#parse QUAL...leave inf QUALS in main array
-		try:
-			QUAL_array[line_counter]=float(qual)
-		except:
-			if n_alt_alleles==0:
-				if check_invariants==True:
-					if qual in QUAL_count_dict_inv:
-						QUAL_count_dict_inv[qual]+=1
-					else:	
-						QUAL_count_dict_inv.update({qual:1})
-			elif n_alt_alleles==1:
-				if check_biallelic==True:
-					if qual in QUAL_count_dict_bi:
-						QUAL_count_dict_bi[qual]+=1
-					else:	
-						QUAL_count_dict_bi.update({qual:1})
-			else:
-				if check_multiallelic==True:
-					if qual in QUAL_count_dict_ma:
-						QUAL_count_dict_ma[qual]+=1
-					else:	
-						QUAL_count_dict_ma.update({qual:1})
-
-		filter_cat=line_cats[6]
-		#parse INFO
-		info=line_cats[7]
-		info_cats=info.split(";")
-		for info_cat in info_cats:
-			info_cat_subs=info_cat.split("=")
-			if info_cat_subs[0]=="DP":
-				info_DP_array[line_counter]=int(info_cat_subs[1])
-			elif (check_biallelic==True or check_multiallelic==True) and info_cat_subs[0] in GATK_index_array:
-				info_array_GATK_bp[line_counter][GATK_index_array[info_cat_subs[0]]]=float(info_cat_subs[1])
-		gt_info=line_cats[8].split(":")
-		gt_DP_i=gt_info.index("DP")
-		try:
-			gt_GQ_i=gt_info.index("GQ")
-		except:
-			gt_GQ_i=None
-		try:
-			gt_RGQ_i=gt_info.index("RGQ")
-		except:
-			gt_RGQ_i=None
-
-		gts=line_cats[9:]
-		#Iterate over GTs once
-		for gt_i in range(len(gts)):
-			gt_all=gts[gt_i].split(":")
-			#get DP
-			try:
-				gt_depth=int(gt_all[gt_DP_i])
-			except:
-				gt_depth=0	
-			#GT_depth_array[line_counter][gt_i]=gt_depth
-			#if gt_depth in GT_depth_count_dicts[gt_i]:
-			#	GT_depth_count_dicts[gt_i][gt_depth]+=1
-			#else:	
-			#	GT_depth_count_dicts[gt_i].update({gt_depth:1})
-			gt_GT=gt_all[0]
-			#test if invariant, bi or ma
-			if n_alt_alleles==0:
-				if check_invariants==True:
-					if gt_GT not in gt_inv_GT_dict[gt_i]:
-						gt_inv_GT_dict[gt_i].update({gt_GT:1})
-					else:
-						gt_inv_GT_dict[gt_i][gt_GT]+=1
-					if gt_depth in gt_inv_depth_count_dict[gt_i]:
-						gt_inv_depth_count_dict[gt_i][gt_depth]+=1
-					else:	
-						gt_inv_depth_count_dict[gt_i].update({gt_depth:1})
-					#if gt_depth>gt_inv_max_depth:
-					#	gt_inv_max_depth=gt_depth
-					#	try:
-					#		gt_inv_RGQ_dict[gt_i]=int(gt_all[gt_RGQ_i])
-							
-					#	except:
-					#		pass
-					if gt_RGQ_i:
-						try:
-							#RGQ_array[line_counter][gt_i]=float(gt_all[gt_RGQ_i])
-							gt_inv_RGQ_count_dict[gt_i][int(gt_all[gt_RGQ_i])]+=1
-						except:
-							pass
-			elif n_alt_alleles==1:
-				if check_biallelic==True:
-					if gt_GT not in gt_bi_GT_dict[gt_i]:
-						gt_bi_GT_dict[gt_i].update({gt_GT:1})
-					else:
-						gt_bi_GT_dict[gt_i][gt_GT]+=1
-					if gt_depth in gt_bi_depth_count_dict[gt_i]:
-						gt_bi_depth_count_dict[gt_i][gt_depth]+=1
-					else:	
-						gt_bi_depth_count_dict[gt_i].update({gt_depth:1})
-					#if gt_depth>gt_bi_max_depth:
-					#	gt_bi_max_depth=gt_depth
-					#if gt_GQ_i:
-						#try:
-						#	gt_bi_GQ_dict[gt_i]=int(gt_all[gt_GQ_i])
-						#except:
-						#	pass
-					if gt_GQ_i:
-						try:
-							#GQ_array[line_counter][gt_i]=float(gt_all[gt_GQ_i])
-							gt_bi_GQ_count_dict[gt_i][int(gt_all[gt_GQ_i])]+=1
-						except:
-							pass
-			else:
-				if check_multiallelic==True:
-					if gt_GT not in gt_ma_GT_dict[gt_i]:
-						gt_ma_GT_dict[gt_i].update({gt_GT:1})
-					else:
-						gt_ma_GT_dict[gt_i][gt_GT]+=1
-					if gt_depth in gt_ma_depth_count_dict[gt_i]:
-						gt_ma_depth_count_dict[gt_i][gt_depth]+=1
-					else:	
-						gt_ma_depth_count_dict[gt_i].update({gt_depth:1})
-					#if gt_depth>gt_ma_max_depth:
-					#	gt_ma_max_depth=gt_depth
-					if gt_GQ_i:
-						try:
-							#GQ_array[line_counter][gt_i]=float(gt_all[gt_GQ_i])
-							gt_ma_GQ_count_dict[gt_i][int(gt_all[gt_GQ_i])]+=1
-						except:
-							pass
-					#if gt_GQ_i:
-					#	try:
-					#		gt_ma_GQ_dict[gt_i]=int(gt_all[gt_GQ_i])
-					#	except:
-					#		pass
-				
-		line_counter+=1
-	line = sys.stdin.readline()
-
-#print("Done reading VCF in %s s" % str(time.time()-vcf_read_time))
-
-
+				QUAL_count_dict_inv={x: QUAL_count_dict_inv.get(x, 0) + pickle_data["QUAL_count_dict_inv"].get(x, 0) for x in set(QUAL_count_dict_inv).union(pickle_data["QUAL_count_dict_inv"])}
+				if len(gt_inv_GT_dict)==0:
+					#Check if arrays are empty, if yes just copy from pickle
+					gt_inv_GT_dict=pickle_data["gt_inv_GT_dict"]
+					gt_inv_depth_count_dict=pickle_data["gt_inv_depth_count_dict"]				
+					gt_inv_RGQ_count_dict=pickle_data["gt_inv_RGQ_count_dict"]				
+				else:
+					#Otherwise iterate over samples and merge dicts
+					for sample_i in range(len(sample_list)):
+						gt_inv_GT_dict[sample_i]={x: gt_inv_GT_dict[sample_i].get(x, 0) + pickle_data["gt_inv_GT_dict"][sample_i].get(x, 0) for x in set(gt_inv_GT_dict[sample_i]).union(pickle_data["gt_inv_GT_dict"][sample_i])}
+						gt_inv_depth_count_dict[sample_i]={x: gt_inv_depth_count_dict[sample_i].get(x, 0) + pickle_data["gt_inv_depth_count_dict"][sample_i].get(x, 0) for x in set(gt_inv_depth_count_dict[sample_i]).union(pickle_data["gt_inv_depth_count_dict"][sample_i])}
+						gt_inv_RGQ_count_dict[sample_i]={x: gt_inv_RGQ_count_dict[sample_i].get(x, 0) + pickle_data["gt_inv_RGQ_count_dict"][sample_i].get(x, 0) for x in set(gt_inv_RGQ_count_dict[sample_i]).union(pickle_data["gt_inv_RGQ_count_dict"][sample_i])}
+			if check_multiallelic==True:
+				QUAL_count_dict_ma={x: QUAL_count_dict_ma.get(x, 0) + pickle_data["QUAL_count_dict_ma"].get(x, 0) for x in set(QUAL_count_dict_ma).union(pickle_data["QUAL_count_dict_ma"])}
+				if len(gt_ma_GT_dict)==0:
+					#Check if arrays are empty, if yes just copy from pickle
+					gt_ma_GT_dict=pickle_data["gt_ma_GT_dict"]
+					gt_ma_depth_count_dict=pickle_data["gt_ma_depth_count_dict"]				
+					gt_ma_GQ_count_dict=pickle_data["gt_ma_GQ_count_dict"]				
+				else:
+					#Otherwise iterate over samples and merge dicts
+					for sample_i in range(len(sample_list)):
+						gt_ma_GT_dict[sample_i]={x: gt_ma_GT_dict[sample_i].get(x, 0) + pickle_data["gt_ma_GT_dict"][sample_i].get(x, 0) for x in set(gt_ma_GT_dict[sample_i]).union(pickle_data["gt_ma_GT_dict"][sample_i])}
+						gt_ma_depth_count_dict[sample_i]={x: gt_ma_depth_count_dict[sample_i].get(x, 0) + pickle_data["gt_ma_depth_count_dict"][sample_i].get(x, 0) for x in set(gt_ma_depth_count_dict[sample_i]).union(pickle_data["gt_ma_depth_count_dict"][sample_i])}
+						gt_ma_GQ_count_dict[sample_i]={x: gt_ma_GQ_count_dict[sample_i].get(x, 0) + pickle_data["gt_ma_GQ_count_dict"][sample_i].get(x, 0) for x in set(gt_ma_GQ_count_dict[sample_i]).union(pickle_data["gt_ma_GQ_count_dict"][sample_i])}
+		print("Done reading pickle %s" % pickle_line)
 
 
 ##########function to estimate mean, SD, median and histogram from count dictionaries
@@ -319,10 +184,6 @@ with open(output+"_table.tsv", "w") as output_table:
 		biallelic_sites=n_alt_array==1
 		biallelic_counter=sum(biallelic_sites)
 		output_table.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("biallelic", "general", "site_count" ,"NA", "NA","all",biallelic_counter))
-		#Write/plot QUAL scores
-		#1. Subset QUAL scores for biallelic sites, mask inf and count them!
-		#QUAL sites
-		#count inf!
 		biallelic_inf_sites=sum(numpy.logical_and(biallelic_sites, numpy.isinf(QUAL_array)))
 		if biallelic_inf_sites>0:
 			QUAL_count_dict_bi.update({"Infinite":biallelic_inf_sites})
@@ -427,26 +288,6 @@ with open(output+"_table.tsv", "w") as output_table:
 		plt.gcf().set_size_inches(len(sample_list)*3, 5)
 		plt.savefig(output+"_GT_counts_biallelic.pdf",dpi=200)
 
-
-
-
-#TODO this differently!
-		#1. iterate over samples again
-
-
-# The bin_edges are the same for all of the histograms
-
-#bin_edges = numpy.linspace(0, hist_range[1], histogram_bins + 1)
-
-
-#heights = np.diff(bin_edges)
-
-
-#centers = bin_edges[:-1] + heights / 2
-
-
-#GET DP
-		
 		bi_GT_sample_results=[analyze_count_dict(i, hist_bins, 0) for i in gt_bi_depth_count_dict]
 		#bi_GT_binned_maximums=[numpy.max(m[4]) for m in bi_GT_sample_results]
 		#bi_GT_x_location_sum=0
@@ -486,36 +327,6 @@ with open(output+"_table.tsv", "w") as output_table:
 			axs[bi_GQ_plot_hist_i].set_title(sample_list[bi_GQ_plot_hist_i])		
 		plt.gcf().set_size_inches(8, 2.5*n_samples)
 		plt.savefig(output+"_GT_GQ_biallelic.pdf")
-		#make violin plot for DP
-		#subset DP array
-#		bi_GT_depth_array=GT_depth_array[biallelic_sites,:]
-#		fig,ax=plt.subplots()
-#		ax.violinplot(bi_GT_depth_array, showmeans=True, showmedians=True, showextrema=True, widths=0.7)
-#		#ax.boxplot(bi_GT_depth_array)
-#		ax.set_title("GT DP")
-#		ax.set_xticks(numpy.arange(1, len(sample_list) + 1), labels=sample_list)
-#		#ax.set_xlim(0.25, len(sample_list) + 0.75)
-#		ax.set_xlabel('Sample')
-#		plt.savefig(output+"_GT_DP_biallelic.pdf")
-
-
-		#make violin plot for GQ
-#		bi_GQ_array=GQ_array[biallelic_sites,:]
-#		fig,ax=plt.subplots()
-#		bi_GQ_mask = ~numpy.isnan(bi_GQ_array)
-#		bi_GQ_filtered_data = [d[m] for d, m in zip(bi_GQ_array.T, bi_GQ_mask.T)]
-#		ax.violinplot(bi_GQ_filtered_data, showmeans=True, showmedians=True, showextrema=True, widths=0.7)
-		#ax.boxplot(bi_GT_depth_array)
-#		ax.set_title("GT GQ")
-#		ax.set_xticks(numpy.arange(1, len(sample_list) + 1), labels=sample_list)
-#		ax.set_xlim(0.25, len(sample_list) + 0.75)
-#		ax.set_xlabel('Sample')
-#		plt.savefig(output+"_GT_GQ_biallelic.pdf")
-		#plot 2d hist of DP and GQ
-
-
-		#print("Done writing/plotting biallelic sites in %s s" % str(time.time()-biallelic_plot_time))
-
 
 	#write/plot biallelic
 	if check_multiallelic==True:
@@ -617,38 +428,38 @@ with open(output+"_table.tsv", "w") as output_table:
 
 		#Write/plot GT stats
 		#plot GTs
-		fig, ax = plt.subplots(layout="constrained")
+#		fig, ax = plt.subplots(layout="constrained")
 		#x = numpy.arange(len(sample_list))
 		#get all gts
 		#gt_ma_gts=set()
-		samples_gts=0
-		for gt_ma_sub_dict in gt_ma_GT_dict:
+#		samples_gts=0
+#		for gt_ma_sub_dict in gt_ma_GT_dict:
 		#	for gt_ma_sub_key in gt_ma_sub_dict:
 		#		gt_ma_gts.add(gt_ma_sub_key)
-			samples_gts+=1
-		width = 1/(samples_gts+1+len(sample_list))  # the width of the bars
+#			samples_gts+=1
+#		width = 1/(samples_gts+1+len(sample_list))  # the width of the bars
 		#multiplier = 0
 		#iterate over samples
-		gt_counter=0
-		sample_positions=[]
-		for gt_dict in gt_ma_GT_dict:
+#		gt_counter=0
+#		sample_positions=[]
+		for gt_dict_i in range(len(gt_ma_GT_dict)):
 			#for gt_type in sorted(list(gt_dict.keys()), key=len):
 			#iterate over genotypes
-			sample_counter=0
-			for gt_type in gt_dict:
-				output_table.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("multiallelic", "GT","GT_count", gt_type, "NA", sample_list[len(sample_positions)], gt_dict[gt_type]))
-				offset=width*gt_counter
-				rects =ax.bar(offset, gt_dict[gt_type], width, label=gt_type, log=True)
-				ax.bar_label(rects, labels=[gt_type], padding=3, fontsize=6, rotation='vertical')
-				gt_counter += 1
-				sample_counter+=1
-			sample_positions.append((gt_counter-(sample_counter/2))*width)
-			gt_counter+=1
-		ax.set_ylabel('GT count')
-		ax.set_title("Multiallelic Genotypes")
-		ax.set_xticks(sample_positions, sample_list)
-		plt.gcf().set_size_inches(len(sample_list)*3, 5)
-		plt.savefig(output+"_GT_counts_multiallelic.pdf",dpi=200)
+#			sample_counter=0
+			for gt_type in gt_ma_GT_dict[gt_dict_i]:
+				output_table.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("multiallelic", "GT","GT_count", gt_type, "NA", sample_list[gt_dict_i], gt_ma_GT_dict[gt_dict_i][gt_type]))
+#				offset=width*gt_counter
+#				rects =ax.bar(offset, gt_dict[gt_type], width, label=gt_type, log=True)
+#				ax.bar_label(rects, labels=[gt_type], padding=3, fontsize=6, rotation='vertical')
+#				gt_counter += 1
+#				sample_counter+=1
+#			sample_positions.append((gt_counter-(sample_counter/2))*width)
+#			gt_counter+=1
+#		ax.set_ylabel('GT count')
+#		ax.set_title("Multiallelic Genotypes")
+#		ax.set_xticks(sample_positions, sample_list)
+#		plt.gcf().set_size_inches(len(sample_list)*3, 5)
+#		plt.savefig(output+"_GT_counts_multiallelic.pdf",dpi=200)
 
 
 
@@ -675,36 +486,6 @@ with open(output+"_table.tsv", "w") as output_table:
 			axs[ma_GQ_plot_hist_i].set_title(sample_list[ma_GQ_plot_hist_i])		
 		plt.gcf().set_size_inches(8, 2.5*n_samples)
 		plt.savefig(output+"_GT_GQ_multiallelic.pdf")
-
-		#make violin plot for DP
-		#subset DP array
-#		ma_GT_depth_array=GT_depth_array[multiallelic_sites,:]
-#		fig,ax=plt.subplots()
-#		ax.violinplot(ma_GT_depth_array, showmeans=True, showmedians=True, showextrema=True, widths=0.7)
-#		#ax.boxplot(ma_GT_depth_array)
-#		ax.set_title("GT DP")
-#		ax.set_xticks(numpy.arange(1, len(sample_list) + 1), labels=sample_list)
-#		#ax.set_xlim(0.25, len(sample_list) + 0.75)
-#		ax.set_xlabel('Sample')
-#		plt.savefig(output+"_GT_DP_multiallelic.pdf")
-#
-#
-#		#make violin plot for GQ
-#		ma_GQ_array=GQ_array[multiallelic_sites,:]
-#		fig,ax=plt.subplots()
-#		ma_GQ_mask = ~numpy.isnan(ma_GQ_array)
-#		ma_GQ_filtered_data = [d[m] for d, m in zip(ma_GQ_array.T, ma_GQ_mask.T)]
-#		ax.violinplot(ma_GQ_filtered_data, showmeans=True, showmedians=True, showextrema=True, widths=0.7)
-#		#ax.boxplot(ma_GT_depth_array)
-#		ax.set_title("GT GQ")
-#		ax.set_xticks(numpy.arange(1, len(sample_list) + 1), labels=sample_list)
-#		ax.set_xlim(0.25, len(sample_list) + 0.75)
-#		ax.set_xlabel('Sample')
-#		plt.savefig(output+"_GT_GQ_multiallelic.pdf")
-#		#plot 2d hist of DP and GQ
-#
-		#print("Done writing/plotting multiallelic sites in %s s" % str(time.time()-multiallelic_plot_time))
-
 
 
 	if check_invariants==True:
@@ -832,38 +613,6 @@ with open(output+"_table.tsv", "w") as output_table:
 			axs[inv_RGQ_plot_hist_i].set_title(sample_list[inv_RGQ_plot_hist_i])		
 		plt.gcf().set_size_inches(8, 2.5*n_samples)
 		plt.savefig(output+"_GT_RGQ_invariant.pdf")
-
-
-
-		#make violin plot for DP
-#		#subset DP array
-#		inv_GT_depth_array=GT_depth_array[invariant_sites,:]
-#		fig,ax=plt.subplots()
-#		ax.violinplot(inv_GT_depth_array, showmeans=True, showmedians=True, showextrema=True, widths=0.7)
-#		#ax.boxplot(inv_GT_depth_array)
-#		ax.set_title("GT DP")
-#		ax.set_xticks(numpy.arange(1, len(sample_list) + 1), labels=sample_list)
-#		#ax.set_xlim(0.25, len(sample_list) + 0.75)
-#		ax.set_xlabel('Sample')
-#		plt.savefig(output+"_GT_DP_invariant.pdf")
-#
-#
-#		#make violin plot for iRGQ
-#		inv_RGQ_array=RGQ_array[invariant_sites,:]
-#		fig,ax=plt.subplots()
-#		inv_RGQ_mask = ~numpy.isnan(inv_RGQ_array)
-#		inv_RGQ_filtered_data = [d[m] for d, m in zip(inv_RGQ_array.T, inv_RGQ_mask.T)]
-#		ax.violinplot(inv_RGQ_filtered_data, showmeans=True, showmedians=True, showextrema=True, widths=0.7)
-#		#ax.boxplot(inv_GT_depth_array)
-#		ax.set_title("GT RGQ")
-#		ax.set_xticks(numpy.arange(1, len(sample_list) + 1), labels=sample_list)
-#		ax.set_xlim(0.25, len(sample_list) + 0.75)
-#		ax.set_xlabel('Sample')
-#		plt.savefig(output+"_GT_RGQ_invariant.pdf")
-#		#plot 2d hist of DP and GQ
-
-		#print("Done writing/plotting invariant sites in %s s" % str(time.time()-invariant_plot_time))
-
 
 
 
