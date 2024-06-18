@@ -47,7 +47,7 @@ for sample_flagstat in flagstat_list:
 				s_dict.update({"mate_diff_chr_mq5":s_fs_value})
 		s_dict.update({"perc_duplicates":str(round((int(s_dict["duplicates"])/int(s_dict["mapped"]))*100, 2))+"%"})
 
-		sample_re=re.compile(".*"+sample_name)
+		sample_re=re.compile(".*"+sample_name+"\.")
 		sample_chr_matches=list(filter(sample_re.match, chr_file_list))
 		assert len(sample_chr_matches)==1, "Error: there should be exactly one raw depth file matching for sample %s, but it's %s" % (sample_name, len(sample_chr_matches))
 		with gzip.open(sample_chr_matches[0], "rt") as depth_raw_file:
