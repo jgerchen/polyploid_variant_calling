@@ -1,3 +1,3 @@
-module add picard-2.8.1
-module add samtools
-module add bwa-0.7.17
+set +eu
+source /storage/brno2/home/gerchenj/mambaforge/bin/activate polyintro_software
+set -eu

@@ -40,7 +40,7 @@ rule index_reference:
 			ref=${{ref%.gz}}
 		fi
 		mv -n $ref {wildcards.species}.fasta
-		java -jar $PICARD CreateSequenceDictionary R={wildcards.species}.fasta O={wildcards.species}.dict &>> {log}
+		picard CreateSequenceDictionary R={wildcards.species}.fasta O={wildcards.species}.dict &>> {log}
 		samtools faidx {wildcards.species}.fasta &>> {log}
 		bwa index {wildcards.species}.fasta &>> {log}
 		cp * {config[fasta_dir]}

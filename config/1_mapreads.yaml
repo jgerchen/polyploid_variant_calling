@@ -35,7 +35,7 @@ map_reads_disk_mb: 4000
 map_reads_runtime: "24h"
 #default resources for rule merge_bams_deduplicate
 merge_bams_mem_mb: 16000
-merge_bams_disk_mb: 16000
+merge_bams_disk_mb: 32000
 merge_bams_runtime: "24h"
 
 bam_depth_mem_mb: 16000

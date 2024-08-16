@@ -60,6 +60,14 @@ source yourcondadir/bin/activate Snakemake
 In addition, Snakemake requires a [cluster profile](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles), which tells it how to submit and queue jobs. I developed a specific cluster profile for MetaCentrum. The profile and instructions for installation and use can be found [here](https://github.com/jgerchen/snakemake_metacentrum).
 
 
+### Installing the workflow
+
+You can clone the workflow to your local directory using
+
+```
+git clone https://github.com/jgerchen/polyploid_variant_calling
+```
+
 ### Installing GATK4
 
 There are different ways to install GATK4 via [Docker](https://gatk.broadinstitute.org/hc/en-us/articles/360035889991) or with the help of [Conda](https://gatk.broadinstitute.org/hc/en-us/articles/360035889851--How-to-Install-and-use-Conda-for-GATK4). Importantly, there are extensive Python dependencies and it appears that just installing the standard Conda package is insufficient to get a fully functional version of GATK4, but Conda can be used to help [installing the dependencies in combination with a local installation of GATK4](https://gatk.broadinstitute.org/hc/en-us/articles/360035889991).
@@ -87,7 +95,7 @@ module load openjdk
 ```
 ### Installing other software
 
-This workflow uses a bunch of other software packages, which are available as modules on MetaCentrum. Specifically, for each part of the workflow they are:
+This workflow uses a bunch of other software packages. Specifically, for each part of the workflow they are:
 
 0. Indexing of reference genome
 * BWA
@@ -116,20 +124,13 @@ For estimating mean depth of bam files and for generating genome-wide estimates 
 * bedops
 * Bedtools
 
-For having a recent version of matplotlib on Metacentrum, it is recommended to create a Conda environment for the filtering step and install the dependencies using
+All of the required software besides GATK4 (which needs a separate conda environment, because it depends on an older python version, see above) and PanDepth (for which no conda package exists yet, see above) can be installed in a single conda environment. I provide a [yml file](examples/polyintro_software.yml), which can be used to create this conda environment with a single command. After activating your base conda environment run
 
 ```
-mamba install -c bioconda bcftools numpy matplotlib bedops bedtools
-```
-
-
-### Installing the workflow
-
-You can clone the workflow to your local directory using
+conda env create -f polyintro_software.yml
 
 ```
-git clone https://github.com/jgerchen/polyploid_variant_calling
-```
+in the examples directory of the workflow.
 
 #### Configuration
 
@@ -172,7 +173,7 @@ If your computing environment does not require to run these scripts you can deac
 
 #### On MetaCentrum:
 
-[Here](examples/prerun_scripts) I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths to conda and gatk4 in 2_callvars.sh, 3_genotypeGVCF.sh and 4_filter_GATK.sh (if you want to use GATK for filtering).
+[Here](examples/prerun_scripts) I provide pre-run scripts, which load the conda environments and metacentrum modules for running the scripts. If you want to use these, you'll have to adjust several paths to conda and gatk4.
 
 ## Running the pipeline
 In priciple, you have to run Snakemake in the workflow directory (where the main Snakefile is located), giving the desired output file(s) as a parameter. In addition, you'll have to provide your main config file using the --configfile parameter and you'll have to define the number of parallel jobs using the -j parameter. Snakemake will then test if the output can be genrated given the rules and input files. If true, it will run the rules and generate output files. For most downstreaam output files that you're most likely interested in generating, you'll have to set the {species} [wildcard](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#wildcards), which will then be automatically used for naming all upstream files.

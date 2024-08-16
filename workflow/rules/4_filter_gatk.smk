@@ -1,4 +1,4 @@
-configfile: "../config/4_filter.yaml"
+configfile: workflow.source_path("../../config/4_filter.yaml")
 
 def filter_gatk_mem_mb(wildcards, attempt):
 	return int(config["filter_mem_mb"]+(config["filter_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
