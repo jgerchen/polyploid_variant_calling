@@ -449,10 +449,10 @@ rule bcftools_filter_fourfold:
 		fi
 		cp {input} $temp_folder
 		cp {params.bcftools_parse_script} $temp_folder
+		cd $temp_folder
 		n_sites_bi=$(grep $'biallelic\tgeneral\tsite_count' {wildcards.species}.bigt.merged.bt.tsv | cut -f 7)
 		n_sites_inv=$(grep $'invariant\tgeneral\tsite_count' {wildcards.species}.bigt.merged.bt.tsv | cut -f 7)
 		n_sites_total=$((n_sites_bi+n_sites_invariant))
-		cd $temp_folder
 		fourfold_sites=$(awk -F/ '{{print $NF}}' <<< {input.fourfold_sites})
 		bcftools view --threads 1 -R $fourfold_sites {wildcards.species}.merged.masked.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_total --histogram_bins 50 --output {wildcards.species}.fourfold --biallelic --invariants) | bgzip >{wildcards.species}.fourfold.bt.vcf.gz 
 		cp {wildcards.species}.fourfold_table.tsv {output.vcf_stats_table_fourfold}
