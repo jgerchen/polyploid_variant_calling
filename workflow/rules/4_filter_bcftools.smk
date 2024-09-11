@@ -409,6 +409,7 @@ rule bcftools_mask:
 rule bcftools_filter_fourfold:
 	input:
 		merged_masked=config["vcf_filtered"]+"/{species}.merged.masked.bt.vcf.gz",
+		merged_masked_index=config["vcf_filtered"]+"/{species}.merged.masked.bt.vcf.gz.tbi",
 		ref_fasta_fai=config["fasta_dir"]+"/{species}.fasta.fai",
 		fourfold_sites=config["fourfold"],
 		vcf_stats_table_mask=config["report_dir"]+"/filterbigt/{species}.bigt.merged.bt.tsv"
