@@ -235,7 +235,7 @@ You can generate any intermediate files that are defined in output directive of 
 
 After genotyping and merging of VCF files there are multiple filtering stages, as shown in the following diagram:
 
-![Workflow showing the single subsequent steps used in the bcftools filtering steps](/examples/variant_calling.pdf)
+![Workflow showing the subsequent steps used in the bcftools filtering steps](/examples/variant_calling.png)
 
 #### BCFtools
 * **config[vcf_filtered]/{species}.bisel.bt.vcf.gz** VCF file containing all biallelic SNPs (invariants, multi-allelic variants and INDELS and complex variants removed)
