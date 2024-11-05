@@ -140,7 +140,10 @@ while line:
 			elif (check_biallelic==True or check_multiallelic==True) and info_cat_subs[0] in GATK_index_array:
 				info_array_GATK_bp[line_counter][GATK_index_array[info_cat_subs[0]]]=float(info_cat_subs[1])
 		gt_info=line_cats[8].split(":")
-		gt_DP_i=gt_info.index("DP")
+		try:	
+			gt_DP_i=gt_info.index("DP")
+		except:
+			gt_DP_i=None
 		try:
 			gt_GQ_i=gt_info.index("GQ")
 		except:
