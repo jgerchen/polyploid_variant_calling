@@ -4,7 +4,7 @@ import numpy
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 import time
-
+import itertools
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--n_sites')
@@ -13,6 +13,7 @@ parser.add_argument('--histogram_bins')
 parser.add_argument('--invariants', action='store_true')
 parser.add_argument('--biallelic', action='store_true')
 parser.add_argument('--multiallelic', action='store_true')
+parser.add_argument('--plot_filter', action='store_true')
 args=parser.parse_args()
 
 n_sites=int(args.n_sites)
@@ -21,6 +22,7 @@ output=args.output
 check_invariants=args.invariants
 check_biallelic=args.biallelic
 check_multiallelic=args.multiallelic
+plot_filter=args.plot_filter
 line_counter=0
 
 #print("Allocating main array...")
@@ -37,7 +39,8 @@ if check_invariants==True:
 	QUAL_count_dict_inv={}
 if check_multiallelic==True:
 	QUAL_count_dict_ma={}
-
+if plot_filter==True:
+	filter_dict={}
 #Not included: FIlters -> we typically only use hard filtering
 
 
@@ -132,6 +135,11 @@ while line:
 						QUAL_count_dict_ma.update({qual:1})
 
 		filter_cat=line_cats[6]
+		if plot_filter:
+			if filter_cat not in filter_dict:
+				filter_dict.update({filter_cat:1})
+			else:
+				filter_dict[filter_cat]+=1
 		#parse INFO
 		info=line_cats[7]
 		info_cats=info.split(";")
@@ -142,7 +150,10 @@ while line:
 			elif (check_biallelic==True or check_multiallelic==True) and info_cat_subs[0] in GATK_index_array:
 				info_array_GATK_bp[line_counter][GATK_index_array[info_cat_subs[0]]]=float(info_cat_subs[1])
 		gt_info=line_cats[8].split(":")
-		gt_DP_i=gt_info.index("DP")
+		try:
+			gt_DP_i=gt_info.index("DP")
+		except:
+			gt_DP_i=None
 		try:
 			gt_GQ_i=gt_info.index("GQ")
 		except:
@@ -705,8 +716,6 @@ with open(output+"_table.tsv", "w") as output_table:
 #
 		#print("Done writing/plotting multiallelic sites in %s s" % str(time.time()-multiallelic_plot_time))
 
-
-
 	if check_invariants==True:
 		invariant_plot_time=time.time()
 		#get array of invariant sites and count
@@ -864,8 +873,39 @@ with open(output+"_table.tsv", "w") as output_table:
 
 		#print("Done writing/plotting invariant sites in %s s" % str(time.time()-invariant_plot_time))
 
-
-
-
-
-
+#currently only for biallelic sites
+	if plot_filter:
+		filter_dict_cats_list=[]
+		for filter_dict_cat in filter_dict:
+			output_table.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("biallelic", "FILTER", "GATK_COUNT", filter_dict_cat,"NA", "all", filter_dict[filter_dict_cat]))
+			#if filter_dict_cat!="PASS":
+			#	filter_dict_cats_list=filter_dict_cats_list+filter_dict_cat.split(";")
+		unique_filter_dict_cats=["MQRankSum","FS","ReadPosRankSum","SOR","MQ","QD"]
+		filter_iter_dict={}
+		for filter_comb in range(1,len(unique_filter_dict_cats)+1):#
+			filter_iter_dict.update({i:0 for i in itertools.combinations(unique_filter_dict_cats, filter_comb)})
+		for filter_dict_cat_again in filter_dict:
+			filter_dict_cat_again_set=set(filter_dict_cat_again.split(";"))
+			for filter_iter_cat in filter_iter_dict:
+				if set(filter_iter_cat)==filter_dict_cat_again_set:
+					filter_iter_dict[filter_iter_cat]=filter_dict[filter_dict_cat_again]
+		fig, ax=plt.subplots(2,1, sharex=True, figsize=(16,9), gridspec_kw={'height_ratios': [3, 1]})
+		filter_n_pass=0
+		if "PASS" in filter_dict:
+			filter_n_pass=filter_dict["PASS"]
+		ax[0].bar(["PASS"]+[",".join(key) for key in filter_iter_dict.keys()], [filter_n_pass]+list(filter_iter_dict.values()), log=True)
+		ax[0].tick_params('x', labelbottom=False, bottom=False)
+		filter_set_array=[[0]+[255]*len(filter_iter_dict)]
+		for filter_unique_cat in unique_filter_dict_cats:
+			f_u_c_array=[255]
+			for f_u in filter_iter_dict:
+				if filter_unique_cat in set(f_u):
+					f_u_c_array.append(0)
+				else:	
+					f_u_c_array.append(255)
+			filter_set_array.append(f_u_c_array)
+		ax[1].imshow(numpy.array(filter_set_array), cmap='gray', vmin=0, vmax=255)
+		ax[1].set_yticks(numpy.arange(len(unique_filter_dict_cats)+1), labels=["PASS"]+unique_filter_dict_cats) 
+		ax[1].tick_params('x', labelbottom=False, bottom=False)
+		fig.tight_layout(h_pad=-1)
+		plt.savefig(output+"_GATK_filters.pdf")
