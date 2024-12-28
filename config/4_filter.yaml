@@ -34,3 +34,4 @@ invariant_min_depth: 10
 invariant_max_missing: 0.1
 #Proportion of samples with excess depth required for site to be included in depth mask
 depthmask_prop_excess_depth: 0.5
+combine_filtered_mv_biallelic: False

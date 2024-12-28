@@ -16,8 +16,13 @@ rule filter_bcftools_bisnp:
 		vcf_input=config["vcf_dir"]+"/{species}.merged.vcf.gz",
 		vcf_stats_table=config["report_dir"]+"/MergeSubVCFs/{species}.merged.tsv"
 	output:
+		vcf_filtered_mv_biallelic=config["vcf_filtered"]+"/{species}.mv_biallelic.bt.vcf.gz" if config["combine_filtered_mv_biallelic"]==True else [],
+		vcf_filtered_mv_biallelic_index=config["vcf_filtered"]+"/{species}.mv_biallelic.bt.vcf.gz.tbi" if config["combine_filtered_mv_biallelic"]==True else [],
+		#vcf_stats_table_ma_biallelic=config["report_dir"]+"/filtermultivariant/{species}.ma_biallelic.tsv" if config["combine_filtered_mv_biallelic"]==True else [],
 		bisnp_sel=config["vcf_filtered"]+"/{species}.bisel.bt.vcf.gz",
 		bisnp_sel_index=config["vcf_filtered"]+"/{species}.bisel.bt.vcf.gz.tbi",
+		bisnp_filter=config["vcf_filtered"]+"/{species}.bifilter.bt.vcf.gz",
+		bisnp_filter_index=config["vcf_filtered"]+"/{species}.bifilter.bt.vcf.gz.tbi",
 		bisnp_passed=config["vcf_filtered"]+"/{species}.bipassed.bt.vcf.gz",
 		bisnp_passed_index=config["vcf_filtered"]+"/{species}.bipassed.bt.vcf.gz.tbi",
 		vcf_stats_table_bisel=config["report_dir"]+"/filterbisnp/{species}.bisel.merged.tsv",
@@ -33,8 +38,14 @@ rule filter_bcftools_bisnp:
 		vcf_stats_INFO_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_INFO_bipassed.pdf", category="filterbisnp", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
 		vcf_stats_GT_counts_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_GT_counts_biallelic_bipassed.pdf", category="filterbisnp", subcategory="Genotype counts", labels={"variant type":"biallelic", "statistic":"GT counts", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
 		vcf_stats_GT_DP_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_GT_DP_biallelic_bipassed.pdf", category="filterbisnp", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT DP", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
-		vcf_stats_GT_GQ_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_GT_GQ_biallelic_bipassed.pdf", category="filterbisnp", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT GQ", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])})
-
+		vcf_stats_GT_GQ_biallelic_bipassed=report(config["report_dir"]+"/filterbisnp/{species}_GT_GQ_biallelic_bipassed.pdf", category="filterbisnp", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT GQ", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
+		vcf_stats_QUAL_categories_biallelic_bifilter=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_QUAL_categories_bifilter.pdf", category="filterbisnp", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL_categories", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
+		vcf_stats_table_bifilter=config["report_dir"]+"/filterbisnp/{species}.bifilter.merged.tsv",
+		vcf_stats_QUAL_biallelic_bifilter=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_QUAL_bifilter.pdf", category="filterbisnp", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
+		vcf_stats_INFO_biallelic_bifilter=report(config["report_dir"]+"/filterbisnp/{species}_biallelic_INFO_bifilter.pdf", category="filterbisnp", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
+		vcf_stats_GT_counts_biallelic_bifilter=report(config["report_dir"]+"/filterbisnp/{species}_GT_counts_biallelic_bifilter.pdf", category="filterbisnp", subcategory="Genotype counts", labels={"variant type":"biallelic", "statistic":"GT counts", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
+		vcf_stats_GT_DP_biallelic_bifilter=report(config["report_dir"]+"/filterbisnp/{species}_GT_DP_biallelic_bifilter.pdf", category="filterbisnp", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT DP", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])}),
+		vcf_stats_GT_GQ_biallelic_bifilter=report(config["report_dir"]+"/filterbisnp/{species}_GT_GQ_biallelic_bifilter.pdf", category="filterbisnp", subcategory="Genotype stats", labels={"variant type":"biallelic", "statistic":"GT GQ", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"])})
 	threads: 3
 	resources:
 		mem_mb=filter_bcftools_mem_mb,
@@ -60,12 +71,33 @@ rule filter_bcftools_bisnp:
 		if [ {config[copy_large_vcfs]} -eq 1 ]
 		then
 			cp {input} $temp_folder
+		fi
+		if [  {config[combine_filtered_mv_biallelic]} -eq 1 ]
+		then
+
+			if [ {config[copy_large_vcfs]} -eq 1 ]
+			then
+				bcftools view --threads 1 -m3 -M3 -C 1:minor {wildcards.species}.merged.vcf.gz | python3 replace_minor.py | bgzip > {wildcards.species}.mvbiallelic.bt.vcf.gz
+			else
+				bcftools view --threads 1 -m3 -M3 -C 1:minor {input.vcf_input} | python3 replace_minor.py | bgzip > {wildcards.species}.mvbiallelic.bt.vcf.gz
+
+			fi
+
+			cp {wildcards.species}.mvbiallelic.bt.vcf.gz {output.vcf_filtered_mv_biallelic} 
+			#TODO: add stat plots to output
+			tabix {wildcards.species}.mvbiallelic.bt.vcf.gz
+			cp {wildcards.species}.mvbiallelic.bt.vcf.gz.tbi {output.vcf_filtered_mv_biallelic_index} 
+		fi
+
+
+		if [ {config[copy_large_vcfs]} -eq 1 ]
+		then
 			bcftools view --threads 1 -m2 -M2 -v snps {wildcards.species}.merged.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic) | bgzip > {wildcards.species}.bisel.bt.vcf.gz 
 
 		else
 			bcftools view --threads 1 -m2 -M2 -v snps {input.vcf_input} | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic) | bgzip > {wildcards.species}.bisel.bt.vcf.gz 
 		fi
-		
+
 		cp {wildcards.species}.bisel_table.tsv {output.vcf_stats_table_bisel}
 		cp {wildcards.species}.bisel_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic_bisel}
 		cp {wildcards.species}.bisel_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic_bisel}
@@ -73,13 +105,26 @@ rule filter_bcftools_bisnp:
 		cp {wildcards.species}.bisel_GT_DP_biallelic.pdf {output.vcf_stats_GT_DP_biallelic_bisel}
 		cp {wildcards.species}.bisel_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_biallelic_bisel}
 		cp {wildcards.species}.bisel_INFO_biallelic.pdf {output.vcf_stats_INFO_biallelic_bisel}
-		
 
 		cp {wildcards.species}.bisel.bt.vcf.gz {output.bisnp_sel} &>> {log}
 		tabix {wildcards.species}.bisel.bt.vcf.gz &>> {log}
 		cp {wildcards.species}.bisel.bt.vcf.gz.tbi {output.bisnp_sel_index} 
 		n_sites_bisel=$(grep $'biallelic\tgeneral\tsite_count' {wildcards.species}.bisel_table.tsv | cut -f 7 )
-		bcftools filter --threads 1 -m+ -s+ -e'MQ<{config[MQ_less]} | QD<{config[QD_less]} | FS>{config[FS_more]} | MQRankSum<{config[MQRS_less]} | ReadPosRankSum<{config[RPRS_less]} | SOR>{config[SOR_more]} | QUAL=\".\"' {wildcards.species}.bisel.bt.vcf.gz |  bcftools view -f.,PASS | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bisel --histogram_bins 50 --output {wildcards.species}.bipassed --biallelic)  | bgzip > {wildcards.species}.bipassed.bt.vcf.gz
+
+		bcftools filter --threads 1 -m+ -s'MQ' -e'MQ<{config[MQ_less]}' {wildcards.species}.bisel.bt.vcf.gz | bcftools filter -m+ -s'QD' -e'QD<{config[QD_less]}' | bcftools filter -m+ -s'FS' -e'FS>{config[FS_more]}' | bcftools filter -m+ -s'MQRankSum' -e'MQRankSum<{config[MQRS_less]}' |  bcftools filter -m+ -s'ReadPosRankSum' -e'ReadPosRankSum<{config[RPRS_less]}' | bcftools filter -m+ -s'SOR' -e'SOR>{config[SOR_more]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bisel --histogram_bins 50 --output {wildcards.species}.bifilter --biallelic --plot_filter) | bgzip > {wildcards.species}.bifilter.bt.vcf.gz
+
+		cp {wildcards.species}.bifilter_table.tsv {output.vcf_stats_table_bifilter}
+		cp {wildcards.species}.bifilter_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic_bifilter}
+		cp {wildcards.species}.bifilter_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic_bifilter}
+		cp {wildcards.species}.bifilter_GT_counts_biallelic.pdf {output.vcf_stats_GT_counts_biallelic_bifilter}
+		cp {wildcards.species}.bifilter_GT_DP_biallelic.pdf {output.vcf_stats_GT_DP_biallelic_bifilter}
+		cp {wildcards.species}.bifilter_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_biallelic_bifilter}
+		cp {wildcards.species}.bifilter_INFO_biallelic.pdf {output.vcf_stats_INFO_biallelic_bifilter}
+		cp {wildcards.species}.bifilter.bt.vcf.gz {output.bisnp_filter} 
+		tabix {wildcards.species}.bifilter.bt.vcf.gz
+		cp {wildcards.species}.bifilter.bt.vcf.gz.tbi {output.bisnp_filter_index} 
+
+		bcftools view -f.,PASS {wildcards.species}.bifilter.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bisel --histogram_bins 50 --output {wildcards.species}.bipassed --biallelic)  | bgzip > {wildcards.species}.bipassed.bt.vcf.gz
 		cp {wildcards.species}.bipassed_table.tsv {output.vcf_stats_table_bipassed}
 		cp {wildcards.species}.bipassed_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic_bipassed}
 		cp {wildcards.species}.bipassed_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic_bipassed}
@@ -88,16 +133,20 @@ rule filter_bcftools_bisnp:
 		cp {wildcards.species}.bipassed_GT_GQ_biallelic.pdf {output.vcf_stats_GT_GQ_biallelic_bipassed}
 		cp {wildcards.species}.bipassed_INFO_biallelic.pdf {output.vcf_stats_INFO_biallelic_bipassed}
 		cp {wildcards.species}.bipassed.bt.vcf.gz {output.bisnp_passed} 
-		tabix {wildcards.species}.bipassed.bt.vcf.gz &>> {log}
+		tabix {wildcards.species}.bipassed.bt.vcf.gz
 		cp {wildcards.species}.bipassed.bt.vcf.gz.tbi {output.bisnp_passed_index} 
 		"""
 #TODO filter multivariants
 rule filter_bcftools_multivariants:
 	input:
-		config["vcf_dir"]+"/{species}.merged.vcf.gz"
+		config["vcf_dir"]+"/{species}.merged.vcf.gz",
+		vcf_stats_table=config["report_dir"]+"/MergeSubVCFs/{species}.merged.tsv"
 	output:
 		#all multivariant sites
 		multivar_all=config["vcf_filtered"]+"/{species}.multivar.bt.vcf.gz",
+		#vcf_filtered_mvbiallelic=config["vcf_filtered"]+"/{species}.mv_biallelic.bt.vcf.gz" if config["combine_filtered_mv_biallelic"]==True else [],
+		#vcf_filtered_mvbiallelic_index=config["vcf_filtered"]+"/{species}.mv_biallelic.bt.vcf.gz.tbi" if config["combine_filtered_mv_biallelic"]==True else [],
+		#vcf_stats_table_mvbiallelic=config["report_dir"]+"/filtermultivariant/{species}.mv_biallelic.tsv" if config["combine_filtered_mv_biallelic"]==True else []
 		#sites where a multivariate site has a low-frequency complex variant, covering a SNP
 		#multivar_bisel=
 	threads: 2
@@ -126,9 +175,6 @@ rule filter_bcftools_multivariants:
 			bcftools view --threads 1 -m3 -o {wildcards.species}.multivar.bt.vcf.gz -O z {wildcards.species}.merged.vcf.gz  &>> {log}
 		else
 			bcftools view --threads 1 -m3 -o {wildcards.species}.multivar.bt.vcf.gz -O z {input} &>> {log}
-		#select multi-allelic sites (either type)
-		#split multiallelic sites, retain only bi-allelic SNP and set other types of variants to no-call
-		#bcftools norm 	
 		"""
 
 rule filter_bcftools_invariants:
