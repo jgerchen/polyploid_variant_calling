@@ -1,3 +1,4 @@
+# script for getting regions with heterozygous positions 
 import argparse
 import gzip
 import re
@@ -8,12 +9,8 @@ parser.add_argument('-s', '--samples')
 parser.add_argument('-a', '--annotation')
 parser.add_argument('-m', '--missing', default='5')
 
-# parser.add_argument('-v', '--vcf', default='alnus.bigt.dp.m.bt.vcf.gz')
-# parser.add_argument('-o', '--output', default = 'output')
-# parser.add_argument('-s', '--samples', default='alnus_samples.tsv')
-# parser.add_argument('-a', '--annotation', default='Alnus_glutinosa-GCA_958979055.1-2024_02-genes.gff3.gz')
-
-#get the library of populations with sample names 
+# get the library of populations with sample names
+# assuming output in format sample ... ploidy and that population name is not explicitly given
 # def get_populations(samples_file):
 #     # returns {population: [sample1, sample2 ...]}
 #     population_dict = {}
@@ -60,14 +57,14 @@ def process_vcf(contigs_genes, populations):
     need_to_print_info = False
 
     with (gzip.open(args.vcf, 'rt') if args.vcf.endswith(".gz") else open(args.vcf)) as vcf_file, open(args.output, "w") as output:
-        output.write('\t' * 7 + '\t'.join(population for population in populations) + '\n') # printing populations header to output 
+        output.write("contig\t\tstart\tend\t"+ '\t'.join(population for population in populations) + '\n') # printing populations header to output 
         for line in vcf_file:
             if not line.startswith('#'):
                 current_contig, position = line.split()[:2]
                 position = int(position)
                 if current_contig != previous_contig and previous_contig != None:
                     if need_to_print_info:
-                        output.write(f"{previous_contig} ({current_region[0]},{current_region[1]})\t" + '\t'.join(f"{info[0]},{info[1]}" for info in current_gene_info.values()) + '\n')
+                        output.write(f"{current_contig}\t{current_region[0]}\t{current_region[1]}\t" + '\t'.join(f"{info[0]},{info[1]}" for info in current_gene_info.values()) + '\n')
                         need_to_print_info = False
                     pointer = 0
                     current_region, prev_region = (-1, -1), (-1, -1)
@@ -78,13 +75,12 @@ def process_vcf(contigs_genes, populations):
                 current_region, pointer = find_gene(current_contig, position, contigs_genes, pointer)
                 if current_region == (-1, -1): # if the position is in unannotated region
                     if need_to_print_info:
-                        output.write(f"{current_contig} ({prev_region[0]},{prev_region[1]})\t" + '\t'.join(f"{info[0]},{info[1]}" for info in current_gene_info.values()) + '\n')
+                        output.write(f"{current_contig}\t{prev_region[0]}\t{prev_region[1]}\t" + '\t'.join(f"{info[0]},{info[1]}" for info in current_gene_info.values()) + '\n')
                         need_to_print_info = False
                         current_gene_info = {population: (0, 0) for population in populations}
-
                 else:
                     if current_region != prev_region and prev_region != (-1, -1):
-                        output.write(f"{current_contig} ({prev_region[0]},{prev_region[1]})\t" + '\t'.join(f"{info[0]},{info[1]}" for info in current_gene_info.values()) + '\n')
+                        output.write(f"{current_contig}\t{prev_region[0]}\t{prev_region[1]}\t" + '\t'.join(f"{info[0]},{info[1]}" for info in current_gene_info.values()) + '\n')
                         current_gene_info = {population: (0, 0) for population in populations}
                     position_info = get_variant_info(line, indices)
                     current_gene_info = { key: tuple(x + y for x, y in zip(current_gene_info[key], position_info[key])) for key in current_gene_info}
@@ -95,7 +91,7 @@ def process_vcf(contigs_genes, populations):
                 indices = get_indices(populations, line)
         # printing info about the last gene
         if need_to_print_info:
-            output.write(f"{current_contig} ({current_region[0]},{current_region[1]})\t" + '\t'.join(f"{info[0]},{info[1]}" for info in current_gene_info.values()) + '\n')
+            output.write(f"{current_contig}\t{current_region[0]}\t{current_region[1]}\t" + '\t'.join(f"{info[0]},{info[1]}" for info in current_gene_info.values()) + '\n')
             pass
 
 # returns 
@@ -198,10 +194,8 @@ def is_region_line(annotation_line):
     except (IndexError, ValueError):
         return False
 
-if __name__ == '__main__':
-    args = parser.parse_args()
-    populations = get_populations(args.samples)
-    for population, samples in populations.items():
-        print(f"{population}: [{samples}]")
-    contigs_genes = get_genes_from_annotation(args.annotation)
-    process_vcf(contigs_genes, populations)
+
+args = parser.parse_args()
+populations = get_populations(args.samples)
+contigs_genes = get_genes_from_annotation(args.annotation)
+process_vcf(contigs_genes, populations)
