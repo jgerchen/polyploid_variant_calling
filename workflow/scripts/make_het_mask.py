@@ -40,7 +40,7 @@ def get_populations(samples_file):
             population = values[1]
             ploidy = values[2]
             if ploidy == '2':
-                population = values[0]
+                population = values[1]
                 if population in population_dict:
                     population_dict[population].append(sample)
                 else:
