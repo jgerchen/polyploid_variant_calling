@@ -32,11 +32,14 @@ with open(sample_table) as sample_files:
                     pos_count={"A":0, "C":0, "G":0, "T":0, "N":0}
                     #Here is the tricky part, I think the refskip part is more complex
                     for pileupread in pileup_pos.pileups:
-                        if pileupread.is_del or pileupread.is_refskip:
-                            pos_count["N"]+=1
+                        if pileupread.query_position is not None:
+                            if pileupread.is_del or pileupread.is_refskip:
+                                pos_count["N"]+=1
+                            else:
+                                pos_count[pileupread.alignment.query_sequence[pileupread.query_position]]+=1
+                        # if we are dealing with insertion (?)
                         else:
-                            pos_count[pileupread.alignment.query_sequence[pileupread.query_position]]+=1
-
+                            pos_count["N"]+=1
                     aln_string=aln_string+[w for w in sorted(pos_count, key=pos_count.get, reverse=True)][0]
         aln_dict.update({sample_name:aln_string})
 #write results for all samples to one fasta file

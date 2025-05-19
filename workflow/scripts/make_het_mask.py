@@ -185,6 +185,7 @@ def get_variant_info(line, indices, missing_threshold):
             variant_info_per_population[population] = (int(is_fixed_hetero(sample_infos)), int(is_variable_site(sample_infos)))
     return variant_info_per_population
 
+ filtering_script
 def is_fixed_hetero(sample_infos):
     return all(s == "0/1" or s == "0|1" for s in sample_infos if "." not in s) and any ('.' not in s for s in sample_infos)
 
@@ -205,3 +206,62 @@ def main():
     
 if __name__ == "__main__":
     main()
+def get_contig_alias(annotation_line):
+    #1	dhAlnGlut1.1	region	1	53352176	.	.	.	ID=region:1;Alias=OY340898.1,NC_084886.1 -> OY340898.1
+    return annotation_line.split()[-1].split(';')[1].split('=')[1].split(',')[0]
+
+def get_contig_id(annotation_line):
+    #1	dhAlnGlut1.1	region	1	53352176	.	.	.	ID=region:1;Alias=OY340898.1,NC_084886.1 -> 1
+    return annotation_line.split()[-1].split(';')[0].split(':')[1]
+
+def get_gene_id(annotation_line):
+    #1	ensembl	ncRNA_gene	12883	15538	.	-	.	ID=gene:ENSGUIG00005000383;biotype=lncRNA;gene_id=ENSGUIG00005000383;version=1 -> ENSGUIG00005000383
+    return annotation_line.split()[-1].split(';')[0].split(':')[1]
+
+def get_gene_range(annotation_line):
+    ##1	ensembl	ncRNA_gene	12883	15538	.	-	.	ID=gene:ENSGUIG00005000383;biotype=lncRNA;gene_id=ENSGUIG00005000383;version=1 -> (12883, 15538)
+    return (int(annotation_line.split()[3]), int(annotation_line.split()[4]))
+
+
+# returns contigs = {contig: [(gene1_start, gene1_end), (gene2_start, geen2_end) ...]} 
+def get_genes_from_annotation(annotation_file):
+    contigs = {}
+    with (gzip.open(annotation_file, 'rt') if annotation_file.endswith(".gz") else open(annotation_file)) as annotation:
+        current_contig = ""
+        genes_of_current_contig = []
+        for line in annotation:
+            if is_gene_line(line):
+                (gene_start, gene_end) = get_gene_range(line)
+                genes_of_current_contig.append((gene_start, gene_end))
+            elif is_region_line(line):
+                if current_contig != "":
+                    contigs[current_contig] = genes_of_current_contig
+                current_contig = get_contig_alias(line.split()[-1])
+                genes_of_current_contig = []
+        if current_contig != "":
+            contigs[current_contig] = genes_of_current_contig
+    return contigs
+            
+
+def is_gene_line(annotation_line):
+    #1	ensembl	ncRNA_gene	12883	15538	.	-	.	ID=gene:ENSGUIG00005000383;biotype=lncRNA;gene_id=ENSGUIG00005000383;version=1 -> true
+    values = annotation_line.split()
+    try:
+        return len(values) > 8 and values[-1].split(':')[0].split('=')[1] == "gene"
+    except (IndexError, ValueError):
+        return False
+
+def is_region_line(annotation_line):
+    #1	dhAlnGlut1.1	region	1	53352176	.	.	.	ID=region:1;Alias=OY340898.1,NC_084886.1 -> true
+    values = annotation_line.split()
+    try:
+        return len(values) > 8 and values[-1].split(':')[0].split('=')[1] == "region"
+    except (IndexError, ValueError):
+        return False
+
+
+args = parser.parse_args()
+populations = get_populations(args.samples)
+contigs_genes = get_genes_from_annotation(args.annotation)
+process_vcf(contigs_genes, populations)
+main
