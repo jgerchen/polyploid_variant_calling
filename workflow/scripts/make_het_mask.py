@@ -2,43 +2,48 @@
 import argparse
 import gzip
 import re
+from datetime import datetime
+import matplotlib.pyplot as plt
+from itertools import combinations
+import pickle
+
 
 # get the library of populations with sample names
 # assuming output in format sample ... ploidy and that population name is not explicitly given
-# def get_populations(samples_file):
-#     # returns {population: [sample1, sample2 ...]}
-#     population_dict = {}
-#     with open (samples_file, 'r') as populations:
-#         for sample in populations:
-#             values = sample.strip().split('\t')
-#             ploidy = values[-1]
-#             if ploidy == '2':
-#                 # here i specify pop name explicitly
-#                 pop_name = re.sub(r'(\d+)[a-zA-Z]*$', r'\1', values[0]) # AG001g -> AG001
-#                 # pop_name = values[0][:1]
-#                 sample_name = values[0]
-#                 if pop_name in population_dict:
-#                     population_dict[pop_name].append(sample_name)
-#                 else:
-#                     population_dict[pop_name] = [sample_name]
-#     return population_dict
-
-# if the input file is in the format: "sample population ploidy" (so population name is given)
 def get_populations(samples_file):
+    # returns {population: [sample1, sample2 ...]}
     population_dict = {}
     with open (samples_file, 'r') as populations:
         for sample in populations:
             values = sample.strip().split('\t')
-            sample = values[0]
-            population = values[1]
-            ploidy = values[2]
+            ploidy = values[-1]
             if ploidy == '2':
-                population = values[1]
-                if population in population_dict:
-                    population_dict[population].append(sample)
+                # here i specify pop name explicitly
+                pop_name = re.sub(r'(\d+)[a-zA-Z]*$', r'\1', values[0]) # AG001g -> AG001
+                # pop_name = values[0][:1]
+                sample_name = values[0]
+                if pop_name in population_dict:
+                    population_dict[pop_name].append(sample_name)
                 else:
-                    population_dict[population] = [sample]
+                    population_dict[pop_name] = [sample_name]
     return population_dict
+
+# if the input file is in the format: "sample population ploidy" (so population name is given)
+# def get_populations(samples_file):
+#     population_dict = {}
+#     with open (samples_file, 'r') as populations:
+#         for sample in populations:
+#             values = sample.strip().split('\t')
+#             sample = values[0]
+#             population = values[1]
+#             ploidy = values[2]
+#             if ploidy == '2':
+#                 population = values[1]
+#                 if population in population_dict:
+#                     population_dict[population].append(sample)
+#                 else:
+#                     population_dict[population] = [sample]
+#     return population_dict
 
 # returns contigs = {contig: [(gene1_start, gene1_end), (gene2_start, geen2_end) ...]} 
 def get_genes_from_annotation(annotation_file):
@@ -80,18 +85,24 @@ def is_region_line(annotation_line): #1	dhAlnGlut1.1	region	1	53352176	.	.	.	ID=
         return False
  
 def process_vcf(contigs_genes, populations, args):
+    def _stash():
+        for pop, tup in current_gene_info.items():
+            gene_series[pop].append(tup)
+    
     with open ("contig_genes", "w") as file:
         for contig_gene in contigs_genes:
             file.write((f"{contig_gene}: {contigs_genes[contig_gene]}\n\n\n"))
     current_contig = None
     previous_contig = None
     indices = None
-    current_gene_info = {population: (0, 0) for population in populations} # {population : (total_number, heterozygotes)}
+    current_gene_info = {population: (0, 0) for population in populations} # {population : (fixed heterozygotes, total_number)}
     current_region, prev_region = (-1, -1), (-1, -1)
     pointer = 0 # keeps track of the index of current region in current contig
     need_to_print_info = False
+    gene_series = {pop: [] for pop in populations}
 
     with (gzip.open(args.vcf, 'rt') if args.vcf.endswith(".gz") else open(args.vcf)) as vcf_file, open(args.output, "w") as output:
+    # with (gzip.open(args.vcf, 'rt') if args.vcf.endswith(".gz") else open(args.vcf)) as vcf_file:
         output.write("contig\tstart\tend\t"+ '\t'.join(population for population in populations) + '\n') # printing populations header to output 
         for line in vcf_file:
             if not line.startswith('#'):
@@ -99,6 +110,7 @@ def process_vcf(contigs_genes, populations, args):
                 position = int(position)
                 if current_contig != previous_contig and previous_contig != None: # if we moved to a next contig
                     if need_to_print_info:
+                        _stash()
                         output.write(print_gene_info(previous_contig, prev_region, current_gene_info))
                         need_to_print_info = False
                     pointer = 0
@@ -111,11 +123,13 @@ def process_vcf(contigs_genes, populations, args):
                 current_region, pointer = find_gene(current_contig, position, contigs_genes, pointer)
                 if current_region == (-1, -1): # if the position is in unannotated region
                     if need_to_print_info:
+                        _stash()
                         output.write(print_gene_info(current_contig, prev_region, current_gene_info))
                         need_to_print_info = False
                         current_gene_info = {population: (0, 0) for population in populations}
                 else:
                     if current_region != prev_region and prev_region != (-1, -1):
+                        _stash()
                         output.write(print_gene_info(current_contig, prev_region, current_gene_info))
                         current_gene_info = {population: (0, 0) for population in populations}
                     position_info = get_variant_info(line, indices, args.missing)
@@ -127,7 +141,9 @@ def process_vcf(contigs_genes, populations, args):
                 indices = get_indices(populations, line)
         # printing info about the last gene
         if need_to_print_info:
+            _stash()
             output.write(print_gene_info(current_contig, prev_region, current_gene_info))
+        return gene_series
 
 #returns list: population: [index of sample1 in header, index of sample2 in header ...] from vcf file
 def get_indices(populations, header_line):
@@ -191,17 +207,71 @@ def is_fixed_hetero(sample_infos):
 def is_variable_site(sample_infos):
     return any("0" in s for s in sample_infos) and any("1" in s for s in sample_infos) 
 
+def plot_per_gene_per_pop(populations: dict[str, list[tuple[int, int]]], figure_path):
+    plt.figure(figsize=(6, 6)) 
+    for pop, pairs in populations.items():
+        if not pairs:              
+            continue
+        fixed_hetero, var_sites = zip(*pairs) 
+        plt.scatter(var_sites, fixed_hetero, s=6, marker=".", label=pop)
+    plt.xlabel('Number of variable sites')
+    plt.ylabel('Number of fixed heterozygotes')
+    plt.legend()
+    plt.savefig(figure_path)
+    plt.show()
+    
+def plot_mean_per_gene(populations: dict[str, list[tuple[int, int]]], figure_path):
+    plt.figure(figsize=(6, 6)) 
+    pops_num = len(populations)
+    per_pop_ratios = [
+        [het / var if var else 0 for het, var in pairs]
+        for pairs in populations.values()]
+    mean_per_gene = [
+        sum(vals) / pops_num
+        for vals in zip(*per_pop_ratios)        
+    ]
+    plt.hist(mean_per_gene, bins=30)
+    plt.xlabel('Mean fraction of fixed heterozygotes per gene')
+    plt.ylabel('Number of genes')
+    plt.savefig(figure_path)
+    plt.show()
+    
+def plot_pairwise(pop1_name, pop1_genes, pop2_name, pop2_genes, figure_path):
+    plt.figure(figsize=(6, 6)) 
+    res1 = [gene[0] / gene[1] if gene[1] else 0 for gene in pop1_genes]
+    res2 = [gene[0] / gene[1] if gene[1] else 0 for gene in pop2_genes]
+    plt.scatter(res1, res2)
+    plt.xlabel(pop1_name)
+    plt.ylabel(pop2_name)
+    plt.savefig(figure_path)
+    plt.show()
+
 def main():
     parser = argparse.ArgumentParser(description='Generate het mask')
-    parser.add_argument('-v', '--vcf')
-    parser.add_argument('-o', '--output')
-    parser.add_argument('-s', '--samples')
-    parser.add_argument('-a', '--annotation')
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    input_prefix="/home/pavel/kate/work/work_internship/filtering_script/input/"
+    figure_prefix = "/home/pavel/kate/work/work_internship/filtering_script/figures/"
+
+    figure_path_per_gene = figure_prefix + "per_gene_per_pop.png"
+    figure_path_mean = figure_prefix + "mean_per_gene.png"
+    parser.add_argument('-v', '--vcf', default=input_prefix + "alnus.bigt.dp.m.bt.vcf.gz")
+    parser.add_argument('-o', '--output', default=input_prefix + f"outputs/{current_date}")
+    parser.add_argument('-s', '--samples', default=input_prefix + "alnus_samples.tsv")
+    parser.add_argument('-a', '--annotation', default=input_prefix + "Alnus_glutinosa-GCA_958979055.1-2024_02-genes.gff3.gz")
     parser.add_argument('-m', '--missing', default='0.33')
     args = parser.parse_args()
     populations = get_populations(args.samples)
     contigs_genes = get_genes_from_annotation(args.annotation)
-    process_vcf(contigs_genes, populations, args)
+    gene_series = process_vcf(contigs_genes, populations, args)
+    with open ("gene_series.pk1", "wb") as f:
+        pickle.dump(gene_series, f)
+    with open ("gene_series.pk1", "rb") as f:
+        gene_series = pickle.load(f)
+    plot_per_gene_per_pop(gene_series, figure_path_per_gene)
+    plot_mean_per_gene(gene_series, figure_path_mean)
+    combs = combinations(gene_series.keys(), 2)
+    for combo in combs:
+        plot_pairwise(combo[0], gene_series[combo[0]], combo[1], gene_series[combo[1]], figure_prefix + f'{combo[0]}_{combo[1]}.png')
     
 if __name__ == "__main__":
     main()
