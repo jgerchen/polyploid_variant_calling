@@ -1,49 +1,47 @@
 # script for counting fixed heterozygotes and total number of variable sites in given genes
 import argparse
 import gzip
-import re
-from datetime import datetime
 import matplotlib.pyplot as plt
 from itertools import combinations
-import pickle
+from pathlib import Path
 
 
 # get the library of populations with sample names
 # assuming output in format sample ... ploidy and that population name is not explicitly given
-def get_populations(samples_file):
-    # returns {population: [sample1, sample2 ...]}
-    population_dict = {}
-    with open (samples_file, 'r') as populations:
-        for sample in populations:
-            values = sample.strip().split('\t')
-            ploidy = values[-1]
-            if ploidy == '2':
-                # here i specify pop name explicitly
-                pop_name = re.sub(r'(\d+)[a-zA-Z]*$', r'\1', values[0]) # AG001g -> AG001
-                # pop_name = values[0][:1]
-                sample_name = values[0]
-                if pop_name in population_dict:
-                    population_dict[pop_name].append(sample_name)
-                else:
-                    population_dict[pop_name] = [sample_name]
-    return population_dict
-
-# if the input file is in the format: "sample population ploidy" (so population name is given)
 # def get_populations(samples_file):
+#     # returns {population: [sample1, sample2 ...]}
 #     population_dict = {}
 #     with open (samples_file, 'r') as populations:
 #         for sample in populations:
 #             values = sample.strip().split('\t')
-#             sample = values[0]
-#             population = values[1]
-#             ploidy = values[2]
+#             ploidy = values[-1]
 #             if ploidy == '2':
-#                 population = values[1]
-#                 if population in population_dict:
-#                     population_dict[population].append(sample)
+#                 # here i specify pop name explicitly
+#                 pop_name = re.sub(r'(\d+)[a-zA-Z]*$', r'\1', values[0]) # AG001g -> AG001
+#                 # pop_name = values[0][:1]
+#                 sample_name = values[0]
+#                 if pop_name in population_dict:
+#                     population_dict[pop_name].append(sample_name)
 #                 else:
-#                     population_dict[population] = [sample]
+#                     population_dict[pop_name] = [sample_name]
 #     return population_dict
+
+# if the input file is in the format: "sample population ploidy" (so population name is given)
+def get_populations(samples_file):
+    population_dict = {}
+    with open (samples_file, 'r') as populations:
+        for sample in populations:
+            values = sample.strip().split('\t')
+            sample = values[0]
+            population = values[1]
+            ploidy = values[2]
+            if ploidy == '2':
+                population = values[1]
+                if population in population_dict:
+                    population_dict[population].append(sample)
+                else:
+                    population_dict[population] = [sample]
+    return population_dict
 
 # returns contigs = {contig: [(gene1_start, gene1_end), (gene2_start, geen2_end) ...]} 
 def get_genes_from_annotation(annotation_file):
@@ -102,7 +100,6 @@ def process_vcf(contigs_genes, populations, args):
     gene_series = {pop: [] for pop in populations}
 
     with (gzip.open(args.vcf, 'rt') if args.vcf.endswith(".gz") else open(args.vcf)) as vcf_file, open(args.output, "w") as output:
-    # with (gzip.open(args.vcf, 'rt') if args.vcf.endswith(".gz") else open(args.vcf)) as vcf_file:
         output.write("contig\tstart\tend\t"+ '\t'.join(population for population in populations) + '\n') # printing populations header to output 
         for line in vcf_file:
             if not line.startswith('#'):
@@ -244,34 +241,37 @@ def plot_pairwise(pop1_name, pop1_genes, pop2_name, pop2_genes, figure_path):
     plt.xlabel(pop1_name)
     plt.ylabel(pop2_name)
     plt.savefig(figure_path)
-    plt.show()
+    # plt.show()
 
 def main():
+ 
+    
     parser = argparse.ArgumentParser(description='Generate het mask')
-    current_date = datetime.now().strftime('%Y-%m-%d')
-    input_prefix="/home/pavel/kate/work/work_internship/filtering_script/input/"
-    figure_prefix = "/home/pavel/kate/work/work_internship/filtering_script/figures/"
-
-    figure_path_per_gene = figure_prefix + "per_gene_per_pop.png"
-    figure_path_mean = figure_prefix + "mean_per_gene.png"
-    parser.add_argument('-v', '--vcf', default=input_prefix + "alnus.bigt.dp.m.bt.vcf.gz")
-    parser.add_argument('-o', '--output', default=input_prefix + f"outputs/{current_date}")
-    parser.add_argument('-s', '--samples', default=input_prefix + "alnus_samples.tsv")
-    parser.add_argument('-a', '--annotation', default=input_prefix + "Alnus_glutinosa-GCA_958979055.1-2024_02-genes.gff3.gz")
+    parser.add_argument('-v', '--vcf')
+    parser.add_argument('-o', '--output')
+    parser.add_argument('-s', '--samples')
+    parser.add_argument('-a', '--annotation')
     parser.add_argument('-m', '--missing', default='0.33')
+    parser.add_argument('-f', '--figure_directory')
     args = parser.parse_args()
+
+    output_path = Path(args.output)
+    if not output_path.exists():
+        output_path.touch()
     populations = get_populations(args.samples)
     contigs_genes = get_genes_from_annotation(args.annotation)
     gene_series = process_vcf(contigs_genes, populations, args)
-    with open ("gene_series.pk1", "wb") as f:
-        pickle.dump(gene_series, f)
-    with open ("gene_series.pk1", "rb") as f:
-        gene_series = pickle.load(f)
-    plot_per_gene_per_pop(gene_series, figure_path_per_gene)
+    
+    figure_prefix = args.figure_directory
+    figure_prefix = figure_prefix + "/"
+    figure_path_per_gene = figure_prefix + "per_gene_per_pop.png"
+    figure_path_mean = figure_prefix + "mean_per_gene.png"
+    
     plot_mean_per_gene(gene_series, figure_path_mean)
     combs = combinations(gene_series.keys(), 2)
     for combo in combs:
         plot_pairwise(combo[0], gene_series[combo[0]], combo[1], gene_series[combo[1]], figure_prefix + f'{combo[0]}_{combo[1]}.png')
+    plot_per_gene_per_pop(gene_series, figure_path_per_gene)
     
 if __name__ == "__main__":
     main()
