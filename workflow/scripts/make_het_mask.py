@@ -1,7 +1,10 @@
 # script for counting fixed heterozygotes and total number of variable sites in given genes
 import argparse
 import gzip
-import re
+import matplotlib.pyplot as plt
+from itertools import combinations
+from pathlib import Path
+
 
 # get the library of populations with sample names
 # assuming output in format sample ... ploidy and that population name is not explicitly given
@@ -80,16 +83,21 @@ def is_region_line(annotation_line): #1	dhAlnGlut1.1	region	1	53352176	.	.	.	ID=
         return False
  
 def process_vcf(contigs_genes, populations, args):
+    def _stash():
+        for pop, tup in current_gene_info.items():
+            gene_series[pop].append(tup)
+    
     with open ("contig_genes", "w") as file:
         for contig_gene in contigs_genes:
             file.write((f"{contig_gene}: {contigs_genes[contig_gene]}\n\n\n"))
     current_contig = None
     previous_contig = None
     indices = None
-    current_gene_info = {population: (0, 0) for population in populations} # {population : (total_number, heterozygotes)}
+    current_gene_info = {population: (0, 0) for population in populations} # {population : (fixed heterozygotes, total_number)}
     current_region, prev_region = (-1, -1), (-1, -1)
     pointer = 0 # keeps track of the index of current region in current contig
     need_to_print_info = False
+    gene_series = {pop: [] for pop in populations}
 
     with (gzip.open(args.vcf, 'rt') if args.vcf.endswith(".gz") else open(args.vcf)) as vcf_file, open(args.output, "w") as output:
         output.write("contig\tstart\tend\t"+ '\t'.join(population for population in populations) + '\n') # printing populations header to output 
@@ -99,6 +107,7 @@ def process_vcf(contigs_genes, populations, args):
                 position = int(position)
                 if current_contig != previous_contig and previous_contig != None: # if we moved to a next contig
                     if need_to_print_info:
+                        _stash()
                         output.write(print_gene_info(previous_contig, prev_region, current_gene_info))
                         need_to_print_info = False
                     pointer = 0
@@ -111,11 +120,13 @@ def process_vcf(contigs_genes, populations, args):
                 current_region, pointer = find_gene(current_contig, position, contigs_genes, pointer)
                 if current_region == (-1, -1): # if the position is in unannotated region
                     if need_to_print_info:
+                        _stash()
                         output.write(print_gene_info(current_contig, prev_region, current_gene_info))
                         need_to_print_info = False
                         current_gene_info = {population: (0, 0) for population in populations}
                 else:
                     if current_region != prev_region and prev_region != (-1, -1):
+                        _stash()
                         output.write(print_gene_info(current_contig, prev_region, current_gene_info))
                         current_gene_info = {population: (0, 0) for population in populations}
                     position_info = get_variant_info(line, indices, args.missing)
@@ -127,7 +138,9 @@ def process_vcf(contigs_genes, populations, args):
                 indices = get_indices(populations, line)
         # printing info about the last gene
         if need_to_print_info:
+            _stash()
             output.write(print_gene_info(current_contig, prev_region, current_gene_info))
+        return gene_series
 
 #returns list: population: [index of sample1 in header, index of sample2 in header ...] from vcf file
 def get_indices(populations, header_line):
@@ -185,83 +198,80 @@ def get_variant_info(line, indices, missing_threshold):
             variant_info_per_population[population] = (int(is_fixed_hetero(sample_infos)), int(is_variable_site(sample_infos)))
     return variant_info_per_population
 
- filtering_script
 def is_fixed_hetero(sample_infos):
     return all(s == "0/1" or s == "0|1" for s in sample_infos if "." not in s) and any ('.' not in s for s in sample_infos)
 
 def is_variable_site(sample_infos):
     return any("0" in s for s in sample_infos) and any("1" in s for s in sample_infos) 
 
+def plot_per_gene_per_pop(populations: dict[str, list[tuple[int, int]]], figure_path):
+    plt.figure(figsize=(6, 6)) 
+    for pop, pairs in populations.items():
+        if not pairs:              
+            continue
+        fixed_hetero, var_sites = zip(*pairs) 
+        plt.scatter(var_sites, fixed_hetero, s=6, marker=".", label=pop)
+    plt.xlabel('Number of variable sites')
+    plt.ylabel('Number of fixed heterozygotes')
+    plt.legend()
+    plt.savefig(figure_path)
+    plt.show()
+    
+def plot_mean_per_gene(populations: dict[str, list[tuple[int, int]]], figure_path):
+    plt.figure(figsize=(6, 6)) 
+    pops_num = len(populations)
+    per_pop_ratios = [
+        [het / var if var else 0 for het, var in pairs]
+        for pairs in populations.values()]
+    mean_per_gene = [
+        sum(vals) / pops_num
+        for vals in zip(*per_pop_ratios)        
+    ]
+    plt.hist(mean_per_gene, bins=30)
+    plt.xlabel('Mean fraction of fixed heterozygotes per gene')
+    plt.ylabel('Number of genes')
+    plt.savefig(figure_path)
+    plt.show()
+    
+def plot_pairwise(pop1_name, pop1_genes, pop2_name, pop2_genes, figure_path):
+    plt.figure(figsize=(6, 6)) 
+    res1 = [gene[0] / gene[1] if gene[1] else 0 for gene in pop1_genes]
+    res2 = [gene[0] / gene[1] if gene[1] else 0 for gene in pop2_genes]
+    plt.scatter(res1, res2)
+    plt.xlabel(pop1_name)
+    plt.ylabel(pop2_name)
+    plt.savefig(figure_path)
+    # plt.show()
+
 def main():
+ 
+    
     parser = argparse.ArgumentParser(description='Generate het mask')
     parser.add_argument('-v', '--vcf')
     parser.add_argument('-o', '--output')
     parser.add_argument('-s', '--samples')
     parser.add_argument('-a', '--annotation')
     parser.add_argument('-m', '--missing', default='0.33')
+    parser.add_argument('-f', '--figure_directory')
     args = parser.parse_args()
+
+    output_path = Path(args.output)
+    if not output_path.exists():
+        output_path.touch()
     populations = get_populations(args.samples)
     contigs_genes = get_genes_from_annotation(args.annotation)
-    process_vcf(contigs_genes, populations, args)
+    gene_series = process_vcf(contigs_genes, populations, args)
+    
+    figure_prefix = args.figure_directory
+    figure_prefix = figure_prefix + "/"
+    figure_path_per_gene = figure_prefix + "per_gene_per_pop.png"
+    figure_path_mean = figure_prefix + "mean_per_gene.png"
+    
+    plot_mean_per_gene(gene_series, figure_path_mean)
+    combs = combinations(gene_series.keys(), 2)
+    for combo in combs:
+        plot_pairwise(combo[0], gene_series[combo[0]], combo[1], gene_series[combo[1]], figure_prefix + f'{combo[0]}_{combo[1]}.png')
+    plot_per_gene_per_pop(gene_series, figure_path_per_gene)
     
 if __name__ == "__main__":
     main()
-def get_contig_alias(annotation_line):
-    #1	dhAlnGlut1.1	region	1	53352176	.	.	.	ID=region:1;Alias=OY340898.1,NC_084886.1 -> OY340898.1
-    return annotation_line.split()[-1].split(';')[1].split('=')[1].split(',')[0]
-
-def get_contig_id(annotation_line):
-    #1	dhAlnGlut1.1	region	1	53352176	.	.	.	ID=region:1;Alias=OY340898.1,NC_084886.1 -> 1
-    return annotation_line.split()[-1].split(';')[0].split(':')[1]
-
-def get_gene_id(annotation_line):
-    #1	ensembl	ncRNA_gene	12883	15538	.	-	.	ID=gene:ENSGUIG00005000383;biotype=lncRNA;gene_id=ENSGUIG00005000383;version=1 -> ENSGUIG00005000383
-    return annotation_line.split()[-1].split(';')[0].split(':')[1]
-
-def get_gene_range(annotation_line):
-    ##1	ensembl	ncRNA_gene	12883	15538	.	-	.	ID=gene:ENSGUIG00005000383;biotype=lncRNA;gene_id=ENSGUIG00005000383;version=1 -> (12883, 15538)
-    return (int(annotation_line.split()[3]), int(annotation_line.split()[4]))
-
-
-# returns contigs = {contig: [(gene1_start, gene1_end), (gene2_start, geen2_end) ...]} 
-def get_genes_from_annotation(annotation_file):
-    contigs = {}
-    with (gzip.open(annotation_file, 'rt') if annotation_file.endswith(".gz") else open(annotation_file)) as annotation:
-        current_contig = ""
-        genes_of_current_contig = []
-        for line in annotation:
-            if is_gene_line(line):
-                (gene_start, gene_end) = get_gene_range(line)
-                genes_of_current_contig.append((gene_start, gene_end))
-            elif is_region_line(line):
-                if current_contig != "":
-                    contigs[current_contig] = genes_of_current_contig
-                current_contig = get_contig_alias(line.split()[-1])
-                genes_of_current_contig = []
-        if current_contig != "":
-            contigs[current_contig] = genes_of_current_contig
-    return contigs
-            
-
-def is_gene_line(annotation_line):
-    #1	ensembl	ncRNA_gene	12883	15538	.	-	.	ID=gene:ENSGUIG00005000383;biotype=lncRNA;gene_id=ENSGUIG00005000383;version=1 -> true
-    values = annotation_line.split()
-    try:
-        return len(values) > 8 and values[-1].split(':')[0].split('=')[1] == "gene"
-    except (IndexError, ValueError):
-        return False
-
-def is_region_line(annotation_line):
-    #1	dhAlnGlut1.1	region	1	53352176	.	.	.	ID=region:1;Alias=OY340898.1,NC_084886.1 -> true
-    values = annotation_line.split()
-    try:
-        return len(values) > 8 and values[-1].split(':')[0].split('=')[1] == "region"
-    except (IndexError, ValueError):
-        return False
-
-
-args = parser.parse_args()
-populations = get_populations(args.samples)
-contigs_genes = get_genes_from_annotation(args.annotation)
-process_vcf(contigs_genes, populations)
-main
