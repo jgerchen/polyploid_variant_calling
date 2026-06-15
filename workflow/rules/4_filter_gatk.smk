@@ -324,7 +324,7 @@ rule GATK_filter_gt_fourfold:
 		if [ {config[hetmask]} != "None" ]
 		then
 			hetmask=$(awk -F/ '{{print $NF}}' <<< {input.hetmask})
-			$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bipassed.vcf.gz -O {wildcards.species}.bipassed.filtered.vcf.gz -XL $depthmask -XL $hetmask -L $fourfold &>> {log}
+			$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bipassed.vcf.gz -O {wildcards.species}.bi.fourfold.filtered.vcf.gz -XL $depthmask -XL $hetmask -L $fourfold &>> {log}
 		else
 			$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bipassed.vcf.gz -O {wildcards.species}.bi.fourfold.filtered.vcf.gz -XL $depthmask -L $fourfold &>> {log}
 		fi
@@ -332,15 +332,15 @@ rule GATK_filter_gt_fourfold:
 		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bi.fourfold.filtered.vcf.gz -O {wildcards.species}.bi.fourfold.dp.vcf.gz --genotype-filter-expression \"DP < {config[gen_min_depth]}\" --genotype-filter-name \"DP\" &>> {log}
 		cp {wildcards.species}.bi.fourfold.dp.vcf.gz {output.fourfold_bi_dp}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bi.fourfold.dp.vcf.gz &>> {log}
-		cp {wildcards.species}.bipassed.dp.vcf.gz.tbi {output.fourfold_bi_dp_index}
+		cp {wildcards.species}.bi.fourfold.dp.vcf.gz.tbi {output.fourfold_bi_dp_index}
 		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bi.fourfold.dp.vcf.gz -O {wildcards.species}.bi.fourfold.dpnc.vcf.gz --set-filtered-genotype-to-no-call &>> {log}
 		cp {wildcards.species}.bi.fourfold.dpnc.vcf.gz {output.fourfold_bi_dp_nc}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bi.fourfold.dpnc.vcf.gz &>> {log}
-		cp {wildcards.species}.bi.fourfold.dpnc.vcf.gz.tbi {config.bisnp_passed_dp_nc_index}
+		cp {wildcards.species}.bi.fourfold.dpnc.vcf.gz.tbi {output.fourfold_bi_dp_nc_index}
 		$GATK4 SelectVariants -R {wildcards.species}.fasta -V {wildcards.species}.bi.fourfold.dpnc.vcf.gz  -O  {wildcards.species}.bi.fourfold.dpncm.vcf.gz --max-nocall-fraction {config[gen_max_missing]}  &>> {log}
 		cp {wildcards.species}.bi.fourfold.dpncm.vcf.gz {output.fourfold_bi_dp_nc_m}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bi.fourfold.dpncm.vcf.gz &>> {log}
-		cp {wildcards.species}.bi.fourfold.dpncm.vcf.gz.tbi {config.bisnp_passed_dp_nc_m_index}
+		cp {wildcards.species}.bi.fourfold.dpncm.vcf.gz.tbi {output.fourfold_bi_dp_nc_m_index}
 		"""
 def make_depth_mask_mem_mb(wildcards, attempt):
 	return int(config["make_depth_mask_mem_mb"]+(config["make_depth_mask_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
