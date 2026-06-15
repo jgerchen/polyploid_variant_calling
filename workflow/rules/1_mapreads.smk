@@ -397,15 +397,14 @@ def get_samples_bam_stats(wildcards):
 	#bam_stats_output_dict={"stats_depth_contig":[], "stats_depth_contig_clean":[], "stats_flagstat":[]}
 	bam_stats_output_dict={"stats_depth_contig":[], "stats_depth_contig_clean":[], "stats_flagstat":[]}
 	with checkpoints.get_sample_reads.get(species=wildcards.species).output[0].open() as f:
-		#TODO: check if dictionary is already populated, then there's no need to read the file again!
-		if len(sample_dict)==0:
-			for sample_line in f:
-				samp_cats=sample_line.strip().split()
-				if samp_cats[0] not in sample_dict:
-					sample_dict.update({samp_cats[0]:({samp_cats[1]:(samp_cats[2], samp_cats[3])},samp_cats[4],samp_cats[5])})
-				else:
-					if samp_cats[1] not in sample_dict[samp_cats[0]][0]:
-						sample_dict[samp_cats[0]][0].update({samp_cats[1]:(samp_cats[2], samp_cats[3])})
+		#always re-read: guarding on len(sample_dict)==0 silently drops samples added since a stale parse-time read
+		for sample_line in f:
+			samp_cats=sample_line.strip().split()
+			if samp_cats[0] not in sample_dict:
+				sample_dict.update({samp_cats[0]:({samp_cats[1]:(samp_cats[2], samp_cats[3])},samp_cats[4],samp_cats[5])})
+			else:
+				if samp_cats[1] not in sample_dict[samp_cats[0]][0]:
+					sample_dict[samp_cats[0]][0].update({samp_cats[1]:(samp_cats[2], samp_cats[3])})
 		for dict_sample in sample_dict:
 			bam_stats_output_dict["stats_depth_contig"].append(config["report_dir"]+"/bam_depth/{species}_"+dict_sample+".chr.stat.gz")
 			bam_stats_output_dict["stats_depth_contig_clean"].append(config["report_dir"]+"/bam_depth/{species}_"+dict_sample+".chr.clean.stat.gz")
