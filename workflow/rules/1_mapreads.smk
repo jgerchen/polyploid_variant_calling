@@ -315,7 +315,7 @@ rule merge_bams_deduplicate:
 		limit=$(echo `ulimit -n` - 50 | bc)
 		mkdir tmp
 		#java -jar -XX:ParallelGCThreads=2 -Xmx12g $PICARD MarkDuplicates I=all_merged.bam O=all_merged.dedup.bam MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=$limit M=dup_metrics.log ASSUME_SORTED=true TAGGING_POLICY=All &>>{log}
-		picard MarkDuplicates -Djava.io.tmpdir=tmp -Xmx{resources[mem_mb]}m I=all_merged.bam O=all_merged.dedup.bam MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=$limit M=dup_metrics.log ASSUME_SORTED=true TAGGING_POLICY=All TMP_DIR=tmp &>>{log}
+		picard MarkDuplicates -Djava.io.tmpdir=tmp -Xmx$(( {resources[mem_mb]}-2000 > 1024 ? {resources[mem_mb]}-2000 : 1024 ))m I=all_merged.bam O=all_merged.dedup.bam MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=$limit M=dup_metrics.log ASSUME_SORTED=true TAGGING_POLICY=All TMP_DIR=tmp &>>{log}
 		samtools index all_merged.dedup.bam &>>{log}
 		cat dup_metrics.log >> {log}
 		samtools flagstat all_merged.dedup.bam -O tsv > all_merged.flagstat.tsv

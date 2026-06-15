@@ -51,9 +51,9 @@ rule GenotypeGenomicsDBSub:
 		fi
 		if [ {config[GATK_GenotypeGVCF_ignore_crash]} -eq 1  ]
 		then
-			! $GATK4 --java-options \"-Xmx{resources[mem_mb]}m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
+			! $GATK4 --java-options \"-Xmx$(( {resources[mem_mb]}-2000 > 1024 ? {resources[mem_mb]}-2000 : 1024 ))m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
 		else
-			$GATK4 --java-options \"-Xmx{resources[mem_mb]}m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
+			$GATK4 --java-options \"-Xmx$(( {resources[mem_mb]}-2000 > 1024 ? {resources[mem_mb]}-2000 : 1024 ))m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
 		fi
 		cp {wildcards.species}_{wildcards.sub}.vcf.gz {output} 
 		"""
