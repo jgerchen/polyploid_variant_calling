@@ -23,7 +23,7 @@ rule index_reference:
 		config["log_dir"]+"/{species}_indexref.log"
 	shell:
 		"""
-		temp_folder={config[temp_dir]}/index_reference
+		temp_folder={config[temp_dir]}/index_reference_{wildcards.species}
 		mkdir -p $temp_folder
 		trap 'rm -rf $temp_folder' TERM EXIT
 		if [ {config[load_cluster_code]} -eq 1 ]
