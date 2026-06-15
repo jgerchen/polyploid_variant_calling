@@ -135,7 +135,7 @@ rule hapcallerSub:
 			sub_interval=sub_intervals.list
 		fi
 
-		$GATK4 HaplotypeCaller -I {wildcards.species}_{wildcards.sample}.merged.dedup.bam -R {wildcards.species}.fasta -O {wildcards.species}_{wildcards.sample}_{wildcards.sub}.g.vcf.gz -ERC GVCF --min-base-quality-score {config[hapcaller_minbaseq]} --minimum-mapping-quality {config[hapcaller_minmapq]} -ploidy {params.sample_ploidy} --max-genotype-count 350 -L $sub_interval &>> {log}
+		$GATK4 --java-options "-Xmx$(({resources[mem_mb]}-2000))m" HaplotypeCaller -I {wildcards.species}_{wildcards.sample}.merged.dedup.bam -R {wildcards.species}.fasta -O {wildcards.species}_{wildcards.sample}_{wildcards.sub}.g.vcf.gz -ERC GVCF --min-base-quality-score {config[hapcaller_minbaseq]} --minimum-mapping-quality {config[hapcaller_minmapq]} -ploidy {params.sample_ploidy} --max-genotype-count 350 -L $sub_interval --tmp-dir . &>> {log}
 		#removed rf BadMate
 		cp {wildcards.species}_{wildcards.sample}_{wildcards.sub}.g.vcf.gz {output.gvcf_out} 		
 		"""
