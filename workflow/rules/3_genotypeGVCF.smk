@@ -156,10 +156,9 @@ rule MergeSubVCFsbcftools:
 		cp {input} $temp_folder
 		cp {params.combine_stat_pickles} $temp_folder
 		cd $temp_folder
-		sub_intervals=$(awk -F/ '{{print $NF}}' <<< {input.sub_interval_list})
-		#TODO: does this actually work??? No it doesn't! Fix it...
-		awk '{{print "{wildcards.species}_"$1".vcf.gz"}}' $sub_intervals > input_files.list
-		awk '{{print "{wildcards.species}_"$1".vcfstats.pickle"}}' $sub_intervals > input_pickles.list
+		#build lists from the actual inputs (in interval_list order); re-parsing sub_intervals broke on blank lines
+		for f in {input.out_vcf}; do basename "$f"; done > input_files.list
+		for f in {input.vcf_stats_pickles}; do basename "$f"; done > input_pickles.list
 		bcftools concat -f input_files.list -n -o {wildcards.species}.merged.bt.vcf.gz
 		#publish atomically (.tmp sibling then rename); this VCF is read in place by stage 4 when copy_large_vcfs=0, so a truncated copy would poison all downstream filtering
 		cp {wildcards.species}.merged.bt.vcf.gz {output.vcf_out}.tmp && mv {output.vcf_out}.tmp {output.vcf_out}
