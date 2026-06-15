@@ -174,7 +174,7 @@ rule GenomicsDBimportSub:
 		get_samples_genomicsdb
 	output:
 		directory(config["gvcf_dir"]+"/{species}_{sub}_GenomicsDB")
-	threads: 1
+	threads: 4
 	resources:
 		mem_mb=GenomicsDBimportSub_mem_mb,
 		disk_mb=GenomicsDBimportSub_disk_mb,
@@ -208,8 +208,10 @@ rule GenomicsDBimportSub:
 			echo $in_gvzf | awk -F_ '{{print $2\"\\t\"$0}}' >> cohort.sample_map 
 		done
 		
-		$GATK4 GenomicsDBImport --genomicsdb-workspace-path GDB_database --batch-size 50 -L $sub_interval --sample-name-map cohort.sample_map --tmp-dir tmp --reader-threads 4 &>> {log}
-		cp -rf GDB_database {output}
+		$GATK4 GenomicsDBImport --genomicsdb-workspace-path GDB_database --batch-size 50 -L $sub_interval --sample-name-map cohort.sample_map --tmp-dir tmp --reader-threads {threads} --genomicsdb-shared-posixfs-optimizations true &>> {log}
+		#rm partial DB from an interrupted run first; cp -rf onto an existing dir would nest/corrupt it
+		rm -rf {output}
+		cp -r GDB_database {output}
 		"""
 
 #def get_intervals(wildcards):
