@@ -55,7 +55,9 @@ rule GenotypeGenomicsDBSub:
 		else
 			$GATK4 --java-options \"-Xmx$(( {resources[mem_mb]}-2000 > 1024 ? {resources[mem_mb]}-2000 : 1024 ))m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
 		fi
-		cp {wildcards.species}_{wildcards.sub}.vcf.gz {output} 
+		#GATK may exit non-zero yet still have written a complete VCF (tolerated when ignore_crash=1), but a truncated VCF must not reach the merge: fail unless it decompresses cleanly
+		zcat {wildcards.species}_{wildcards.sub}.vcf.gz > /dev/null 2>> {log} || exit 1
+		cp {wildcards.species}_{wildcards.sub}.vcf.gz {output}
 		"""
 
 
