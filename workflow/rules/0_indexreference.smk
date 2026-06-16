@@ -39,7 +39,11 @@ rule index_reference:
 			gunzip $ref
 			ref=${{ref%.gz}}
 		fi
-		mv -n $ref {wildcards.species}.fasta
+		#rename the input to {species}.fasta unless it is already named so (a plain mv onto itself would error; mv -n would silently skip)
+		if [ "$ref" != "{wildcards.species}.fasta" ]
+		then
+			mv $ref {wildcards.species}.fasta
+		fi
 		picard CreateSequenceDictionary R={wildcards.species}.fasta O={wildcards.species}.dict &>> {log}
 		samtools faidx {wildcards.species}.fasta &>> {log}
 		bwa index {wildcards.species}.fasta &>> {log}
