@@ -155,7 +155,7 @@ rule filter_bcftools_multivariants:
 		disk_mb=filter_bcftools_disk_mb,
 		runtime=filter_bcftools_runtime
 	log:
-		config["log_dir"]+"/filter_bisnp_bcftools_{species}.log"
+		config["log_dir"]+"/filter_multivariants_bcftools_{species}.log"
 	shell:
 		"""
 		temp_folder={config[temp_dir]}/filter_bcftools_multivariant_{wildcards.species}
