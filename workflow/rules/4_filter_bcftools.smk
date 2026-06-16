@@ -154,8 +154,6 @@ rule filter_bcftools_multivariants:
 		mem_mb=filter_bcftools_mem_mb,
 		disk_mb=filter_bcftools_disk_mb,
 		runtime=filter_bcftools_runtime
-	params:
-		bcftools_parse_script=workflow.source_path("../scripts/parse_bcftools_stdout.py")
 	log:
 		config["log_dir"]+"/filter_bisnp_bcftools_{species}.log"
 	shell:
@@ -168,7 +166,6 @@ rule filter_bcftools_multivariants:
 			source {config[cluster_code_dir]}/4_filter_bcftools.sh
 		fi
 		cd $temp_folder
-		cp {params.bcftools_parse_script} $temp_folder
 		if [ {config[copy_large_vcfs]} -eq 1 ]
 		then
 			cp {input} $temp_folder
