@@ -181,7 +181,7 @@ rule GATK_mask:
 		ref_fasta_dict=config["fasta_dir"]+"/{species}.dict"
 	output:
 		merged_filtered=config["vcf_filtered"]+"/{species}.merged.filtered.vcf.gz",
-		merged_filtered_index=config["vcf_filtered"]+"/{species}.mergedfiltered.vcf.gz.tbi"
+		merged_filtered_index=config["vcf_filtered"]+"/{species}.merged.filtered.vcf.gz.tbi"
 	threads: 1
 	resources:
 		mem_mb=filter_gatk_mem_mb,
