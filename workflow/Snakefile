@@ -1,3 +1,5 @@
+#pipefail so a failed stage in a multi-command pipeline (e.g. bcftools|...|bgzip) is not masked by the exit status of the last command
+shell.prefix("set -o pipefail; ")
 ruleorder: MergeSubVCFsbcftools > GenotypeGenomicsDBSub > GenomicsDBimportSub > hapcallerSub > merge_bams_deduplicate > map_reads > trimmomatic
 include: "rules/0_indexreference.smk"
 include: "rules/1_mapreads.smk"
