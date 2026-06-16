@@ -47,5 +47,5 @@ rule index_reference:
 		picard CreateSequenceDictionary R={wildcards.species}.fasta O={wildcards.species}.dict &>> {log}
 		samtools faidx {wildcards.species}.fasta &>> {log}
 		bwa index {wildcards.species}.fasta &>> {log}
-		cp * {config[fasta_dir]}
+		cp {wildcards.species}.fasta* {wildcards.species}.dict {config[fasta_dir]}
 		"""
