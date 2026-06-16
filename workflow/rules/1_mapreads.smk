@@ -135,14 +135,14 @@ rule trimmomatic:
 		pre_fwd_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_fwd.zip" if config["run_fastqc"]==1 else [],
 		pre_rev=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_rev.html", category="trimmomatic", subcategory="fastQC before trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2"}) if config["run_fastqc"]==1 else [],
 		pre_rev_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_rev.zip" if config["run_fastqc"]==1 else [],
-		post_fwd_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Yes"}) if config["run_fastqc"]==True else [],
-		post_fwd_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.zip" if config["run_fastqc"]==True else [],
-		post_rev_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Yes"}) if config["run_fastqc"]==True else [],
-		post_rev_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.zip" if config["run_fastqc"]==True else [],
-		post_fwd_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Singleton"}) if config["run_fastqc"]==True else [],
-		post_fwd_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.zip" if config["run_fastqc"]==True else [],
-		post_rev_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Singleton"}) if config["run_fastqc"]==True else [],
-		post_rev_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.zip" if config["run_fastqc"]==True else []
+		post_fwd_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Yes"}) if config["run_fastqc"]==1 else [],
+		post_fwd_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.zip" if config["run_fastqc"]==1 else [],
+		post_rev_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Yes"}) if config["run_fastqc"]==1 else [],
+		post_rev_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.zip" if config["run_fastqc"]==1 else [],
+		post_fwd_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Singleton"}) if config["run_fastqc"]==1 else [],
+		post_fwd_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.zip" if config["run_fastqc"]==1 else [],
+		post_rev_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Singleton"}) if config["run_fastqc"]==1 else [],
+		post_rev_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.zip" if config["run_fastqc"]==1 else []
 
 	threads: 4
 	resources:
