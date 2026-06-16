@@ -32,13 +32,17 @@ checkpoint get_sample_reads:
 		import re
 		pe_strings=[read_i.split(":") for read_i in config["paired_end_res"].split(",")]
 
+		#validate every sample, collecting all problems so they are all reported in one run instead of failing on the first; only write the output once every sample is valid, never a partial sample_read_file
+		rows=[]
+		sample_errors=[]
 		with open(input.sample_list) as sample_list:
-			with open(output.sample_read_file, "w") as s_read_out:
-				for line in sample_list:
-					if len(line.strip())>0:
-						sample_cats=line.strip().split()
-						assert len(sample_cats)==4, "The sample list must have 4 columns (sample name,file name(s), adapter file and ploidy), but here it's %s" % len(sample_cats)
-						assert "_" not in sample_cats[0], "Sample names must not contain underscores! Remove the underscore in sample name %s and try again" % sample_cats[0]
+			for line in sample_list:
+				if len(line.strip())>0:
+					sample_cats=line.strip().split()
+					sample_name=sample_cats[0]
+					try:
+						assert len(sample_cats)==4, "the sample list must have 4 columns (sample name, file name(s), adapter file and ploidy), but this row has %s" % len(sample_cats)
+						assert "_" not in sample_name, "sample names must not contain underscores"
 						sample_libs=[]
 						for s_cat_multiple in sample_cats[1].split(","):
 							if type(config["fastq_dir"])==str:
@@ -50,7 +54,7 @@ checkpoint get_sample_reads:
 									sample_glob=glob.glob(fastq_dir+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
 									if len(sample_glob)>0:
 										sample_libs=list(set(sample_libs).union(set(sample_glob)))
-						assert len(sample_libs)>=2, "There have to be at least 2 libraries per sample, however sample %s only has %s." % (sample_cats[0], len(sample_libs))
+						assert len(sample_libs)>=2, "there have to be at least 2 libraries per sample, however only %s were found" % len(sample_libs)
 						#get list of wildcard pairs
 						for pe_re in pe_strings:
 							#1. match re1
@@ -60,9 +64,14 @@ checkpoint get_sample_reads:
 							r2_re=re.compile(pe_re[1])
 							samples_r2=sorted(list(filter(r2_re.match, sample_libs)))
 							#ensure the length of both matches is the same
-							assert len(samples_r1)==len(samples_r2), "Regular expressions for forward and reverse reads have to match the same number of times, but for sample %s RE %s matches %s times but RE %s matches %s times." % (sample_cats[0], pe_re[0], len(samples_r1), pe_re[1], len(samples_r2))
+							assert len(samples_r1)==len(samples_r2), "forward read RE %s matches %s files but reverse read RE %s matches %s" % (pe_re[0], len(samples_r1), pe_re[1], len(samples_r2))
 							for re_pair_i in range(len(samples_r1)):
-								s_read_out.write("%s\t%s\t%s\t%s\t%s\t%s\n" % (sample_cats[0], re_pair_i, samples_r1[re_pair_i], samples_r2[re_pair_i], config["adapter_dir"]+"/"+sample_cats[2], sample_cats[3]))
+								rows.append("%s\t%s\t%s\t%s\t%s\t%s\n" % (sample_name, re_pair_i, samples_r1[re_pair_i], samples_r2[re_pair_i], config["adapter_dir"]+"/"+sample_cats[2], sample_cats[3]))
+					except AssertionError as e:
+						sample_errors.append("sample %s: %s" % (sample_name, e))
+		assert not sample_errors, "Problems in %s:\n%s" % (input.sample_list, "\n".join(sample_errors))
+		with open(output.sample_read_file, "w") as s_read_out:
+			s_read_out.writelines(rows)
 
 
 def get_fwd_reads(wildcards):
