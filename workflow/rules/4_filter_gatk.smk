@@ -315,7 +315,7 @@ rule GATK_filter_gt_fourfold:
 		fi
 		cp {input} $temp_folder
 		cd $temp_folder
-		fourfold=$(awk -F/ '{{print $NF}}' <<< {input.fourfold})
+		fourfold=$(awk -F/ '{{print $NF}}' <<< {input.fourfold_sites})
 		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.merged.filtered.vcf.gz -O {wildcards.species}.fourfold.filtered.vcf.gz -L $fourfold &>> {log}
 		cp {wildcards.species}.fourfold.filtered.vcf.gz {output.fourfold_filtered} 
 		$GATK4 IndexFeatureFile -I {wildcards.species}.fourfold.filtered.vcf.gz &>> {log}
