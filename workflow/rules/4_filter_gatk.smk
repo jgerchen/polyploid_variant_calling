@@ -347,7 +347,7 @@ def make_depth_mask_mem_mb(wildcards, attempt):
 def make_depth_mask_disk_mb(wildcards, attempt):
 	return int(config["make_depth_mask_disk_mb"]+(config["make_depth_mask_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def make_depth_mask_runtime(wildcards, attempt):
-	make_depth_mask_runtime_seconds=parse_timespan(config["filter_runtime"])
+	make_depth_mask_runtime_seconds=parse_timespan(config["make_depth_mask_runtime"])
 	return str(int(make_depth_mask_runtime_seconds+int((make_depth_mask_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #make_depth_mask_runtime_cats=config["make_depth_mask_runtime"].split(":")
 #	return str(int(make_depth_mask_runtime_cats[0])+int(int(make_depth_mask_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+make_depth_mask_runtime_cats[1]+":"+make_depth_mask_runtime_cats[2]
