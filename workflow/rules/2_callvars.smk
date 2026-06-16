@@ -92,7 +92,7 @@ def hapcallerSub_disk_mb(wildcards, attempt):
 	return int(config["hapcallerSub_disk_mb"]+(config["hapcallerSub_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def hapcallerSub_runtime(wildcards, attempt):
 	hapcallerSub_runtime_seconds=parse_timespan(config["hapcallerSub_runtime"])
-	return str(hapcallerSub_runtime_seconds+int((hapcallerSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(hapcallerSub_runtime_seconds+int((hapcallerSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 	#hapcallerSub_runtime_cats=config["hapcallerSub_runtime"].split(":")
 	#return str(int(hapcallerSub_runtime_cats[0])+int(int(hapcallerSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+hapcallerSub_runtime_cats[1]+":"+hapcallerSub_runtime_cats[2]
 
@@ -150,7 +150,7 @@ def GenomicsDBimportSub_disk_mb(wildcards, attempt):
 	return int(config["GenomicsDBimportSub_disk_mb"]+(config["GenomicsDBimportSub_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def GenomicsDBimportSub_runtime(wildcards, attempt):
 	GenomicsDBImportSub_runtime_seconds=parse_timespan(config["GenomicsDBimportSub_runtime"])
-	return str(GenomicsDBImportSub_runtime_seconds+int((GenomicsDBImportSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(GenomicsDBImportSub_runtime_seconds+int((GenomicsDBImportSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #GenomicsDBimportSub_runtime_cats=config["GenomicsDBimportSub_runtime"].split(":")
 #	return str(int(GenomicsDBimportSub_runtime_cats[0])+int(int(GenomicsDBimportSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+GenomicsDBimportSub_runtime_cats[1]+":"+GenomicsDBimportSub_runtime_cats[2]
 

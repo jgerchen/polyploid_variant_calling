@@ -108,7 +108,7 @@ def trimmomatic_disk_mb(wildcards, attempt):
 	return int(config["trimmomatic_disk_mb"]+(config["trimmomatic_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def trimmomatic_runtime(wildcards, attempt):
 	trimmomatic_runtime_seconds=parse_timespan(config["trimmomatic_runtime"])
-	return str(trimmomatic_runtime_seconds+int((trimmomatic_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(trimmomatic_runtime_seconds+int((trimmomatic_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 	#trimmomatic_runtime_cats=config["trimmomatic_runtime"].split(":")
 	#return str(int(trimmomatic_runtime_cats[0])+int(int(trimmomatic_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+trimmomatic_runtime_cats[1]+":"+trimmomatic_runtime_cats[2]
 
@@ -196,7 +196,7 @@ def map_reads_disk_mb(wildcards, attempt):
 	return int(config["map_reads_disk_mb"]+(config["map_reads_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def map_reads_runtime(wildcards, attempt):
 	map_reads_runtime_seconds=parse_timespan(config["map_reads_runtime"])
-	return str(map_reads_runtime_seconds+int((map_reads_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(map_reads_runtime_seconds+int((map_reads_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 	#	map_reads_runtime_cats=config["map_reads_runtime"].split(":")
 	#return str(int(map_reads_runtime_cats[0])+int(int(map_reads_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+map_reads_runtime_cats[1]+":"+map_reads_runtime_cats[2]
 rule map_reads:
@@ -262,7 +262,7 @@ def merge_bams_disk_mb(wildcards, attempt):
 	return int(config["merge_bams_disk_mb"]+(config["merge_bams_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def merge_bams_runtime(wildcards, attempt):
 	merge_bams_runtime_seconds=parse_timespan(config["merge_bams_runtime"])
-	return str(merge_bams_runtime_seconds+int((merge_bams_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(merge_bams_runtime_seconds+int((merge_bams_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #merge_bams_runtime_cats=config["merge_bams_runtime"].split(":")
 #	return str(int(merge_bams_runtime_cats[0])+int(int(merge_bams_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+merge_bams_runtime_cats[1]+":"+merge_bams_runtime_cats[2]
 rule merge_bams_deduplicate:
@@ -355,7 +355,7 @@ def bam_depth_disk_mb(wildcards, attempt):
 	return int(config["bam_depth_disk_mb"]+(config["bam_depth_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def bam_depth_runtime(wildcards, attempt):
 	bam_depth_runtime_seconds=parse_timespan(config["bam_depth_runtime"])
-	return str(bam_depth_runtime_seconds+int((bam_depth_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(bam_depth_runtime_seconds+int((bam_depth_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 
 
 rule bam_depth:

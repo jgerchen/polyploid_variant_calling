@@ -8,7 +8,7 @@ def GenotypeGenomicsDBSub_disk_mb(wildcards, attempt):
 	return int(config["GenotypeGenomicsDBSub_disk_mb"]+(config["GenotypeGenomicsDBSub_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def GenotypeGenomicsDBSub_runtime(wildcards, attempt):
 	GenotypeGenomicsDBSub_runtime_seconds=parse_timespan(config["GenotypeGenomicsDBSub_runtime"])
-	return str(GenotypeGenomicsDBSub_runtime_seconds+int((GenotypeGenomicsDBSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(GenotypeGenomicsDBSub_runtime_seconds+int((GenotypeGenomicsDBSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 	#	GenotypeGenomicsDBSub_runtime_cats=config["GenotypeGenomicsDBSub_runtime"].split(":")
 #	return str(int(GenotypeGenomicsDBSub_runtime_cats[0])+int(int(GenotypeGenomicsDBSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+GenotypeGenomicsDBSub_runtime_cats[1]+":"+GenotypeGenomicsDBSub_runtime_cats[2]
 rule GenotypeGenomicsDBSub:
@@ -65,7 +65,7 @@ def get_subVCF_stats_disk_mb(wildcards, attempt):
 	return int(config["subVCF_stats_disk_mb"]+(config["subVCF_stats_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def get_subVCF_stats_runtime(wildcards, attempt):
 	subVCF_stats_runtime_seconds=parse_timespan(config["subVCF_stats_runtime"])
-	return str(subVCF_stats_runtime_seconds+int((subVCF_stats_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(subVCF_stats_runtime_seconds+int((subVCF_stats_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 
 rule get_subVCF_stats:
 	input:
@@ -104,7 +104,7 @@ def MergeSubVCFsbcftools_disk_mb(wildcards, attempt):
 	return int(config["MergeSubVCFsbcftools_disk_mb"]+(config["MergeSubVCFsbcftools_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def MergeSubVCFsbcftools_runtime(wildcards, attempt):
 	MergeSubVCFsbcftools_runtime_seconds=parse_timespan(config["MergeSubVCFsbcftools_runtime"])
-	return str(MergeSubVCFsbcftools_runtime_seconds+int((MergeSubVCFsbcftools_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(MergeSubVCFsbcftools_runtime_seconds+int((MergeSubVCFsbcftools_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #MergeSubVCFsbcftools_runtime_cats=config["MergeSubVCFsbcftools_runtime"].split(":")
 #	return str(int(MergeSubVCFsbcftools_runtime_cats[0])+int(int(MergeSubVCFsbcftools_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+MergeSubVCFsbcftools_runtime_cats[1]+":"+MergeSubVCFsbcftools_runtime_cats[2]
 rule MergeSubVCFsbcftools:
