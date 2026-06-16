@@ -365,6 +365,8 @@ rule make_depth_mask:
 		mem_mb=make_depth_mask_mem_mb,
 		disk_mb=make_depth_mask_disk_mb,
 		runtime=make_depth_mask_runtime
+	params:
+		depth_mask_script=workflow.source_path("../scripts/make_depth_mask.py")
 	log:
 		config["log_dir"]+"/make_depth_mask_{species}.log"
 	shell:
@@ -377,7 +379,7 @@ rule make_depth_mask:
 			source {config[cluster_code_dir]}/4_filter_GATK.sh
 		fi
 		cp {input} $temp_folder
-		cp scripts/make_depth_mask.py $temp_folder
+		cp {params.depth_mask_script} $temp_folder
 		cd $temp_folder
 		n_loci=$(zcat {wildcards.species}.merged.vcf.gz | grep -c \"^[^#]\")
 		python3 make_depth_mask.py -v {wildcards.species}.merged.vcf.gz -o out_file.tsv -c counts_out.tsv -p hist_out.tsv -n {config[depthmask_n]} -l $n_loci
