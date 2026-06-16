@@ -92,7 +92,7 @@ def hapcallerSub_disk_mb(wildcards, attempt):
 	return int(config["hapcallerSub_disk_mb"]+(config["hapcallerSub_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def hapcallerSub_runtime(wildcards, attempt):
 	hapcallerSub_runtime_seconds=parse_timespan(config["hapcallerSub_runtime"])
-	return str(hapcallerSub_runtime_seconds+int((hapcallerSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(hapcallerSub_runtime_seconds+int((hapcallerSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 	#hapcallerSub_runtime_cats=config["hapcallerSub_runtime"].split(":")
 	#return str(int(hapcallerSub_runtime_cats[0])+int(int(hapcallerSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+hapcallerSub_runtime_cats[1]+":"+hapcallerSub_runtime_cats[2]
 
@@ -135,7 +135,7 @@ rule hapcallerSub:
 			sub_interval=sub_intervals.list
 		fi
 
-		$GATK4 HaplotypeCaller -I {wildcards.species}_{wildcards.sample}.merged.dedup.bam -R {wildcards.species}.fasta -O {wildcards.species}_{wildcards.sample}_{wildcards.sub}.g.vcf.gz -ERC GVCF --min-base-quality-score {config[hapcaller_minbaseq]} --minimum-mapping-quality {config[hapcaller_minmapq]} -ploidy {params.sample_ploidy} --max-genotype-count 350 -L $sub_interval &>> {log}
+		$GATK4 --java-options "-Xmx$(( {resources[mem_mb]}-2000 > 1024 ? {resources[mem_mb]}-2000 : 1024 ))m" HaplotypeCaller -I {wildcards.species}_{wildcards.sample}.merged.dedup.bam -R {wildcards.species}.fasta -O {wildcards.species}_{wildcards.sample}_{wildcards.sub}.g.vcf.gz -ERC GVCF --min-base-quality-score {config[hapcaller_minbaseq]} --minimum-mapping-quality {config[hapcaller_minmapq]} -ploidy {params.sample_ploidy} --max-genotype-count 350 -L $sub_interval --tmp-dir . &>> {log}
 		#removed rf BadMate
 		cp {wildcards.species}_{wildcards.sample}_{wildcards.sub}.g.vcf.gz {output.gvcf_out} 		
 		"""
@@ -150,22 +150,21 @@ def GenomicsDBimportSub_disk_mb(wildcards, attempt):
 	return int(config["GenomicsDBimportSub_disk_mb"]+(config["GenomicsDBimportSub_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def GenomicsDBimportSub_runtime(wildcards, attempt):
 	GenomicsDBImportSub_runtime_seconds=parse_timespan(config["GenomicsDBimportSub_runtime"])
-	return str(GenomicsDBImportSub_runtime_seconds+int((GenomicsDBImportSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(GenomicsDBImportSub_runtime_seconds+int((GenomicsDBImportSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #GenomicsDBimportSub_runtime_cats=config["GenomicsDBimportSub_runtime"].split(":")
 #	return str(int(GenomicsDBimportSub_runtime_cats[0])+int(int(GenomicsDBimportSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+GenomicsDBimportSub_runtime_cats[1]+":"+GenomicsDBimportSub_runtime_cats[2]
 
 def get_samples_genomicsdb(wildcards):
 	genomicsdb_output_gvcfs=[]
-	with checkpoints.get_sample_reads.get(species=wildcards.species, sub=wildcards.sub).output[0].open() as f:
-		#check if dictionary is already populated, then there's no need to read the file again!
-		if len(sample_dict)==0:
-			for sample_line in f:
-				samp_cats=sample_line.strip().split()
-				if samp_cats[0] not in sample_dict:
-					sample_dict.update({samp_cats[0]:({samp_cats[1]:(samp_cats[2], samp_cats[3])},samp_cats[4],samp_cats[5])})
-				else:
-					if samp_cats[1] not in sample_dict[samp_cats[0]][0]:
-						sample_dict[samp_cats[0]][0].update({samp_cats[1]:(samp_cats[2], samp_cats[3])})
+	with checkpoints.get_sample_reads.get(species=wildcards.species).output[0].open() as f:
+		#always re-read: guarding on len(sample_dict)==0 silently drops samples added since a stale parse-time read
+		for sample_line in f:
+			samp_cats=sample_line.strip().split()
+			if samp_cats[0] not in sample_dict:
+				sample_dict.update({samp_cats[0]:({samp_cats[1]:(samp_cats[2], samp_cats[3])},samp_cats[4],samp_cats[5])})
+			else:
+				if samp_cats[1] not in sample_dict[samp_cats[0]][0]:
+					sample_dict[samp_cats[0]][0].update({samp_cats[1]:(samp_cats[2], samp_cats[3])})
 		for dict_sample in sample_dict:
 			genomicsdb_output_gvcfs.append(config["gvcf_dir"]+"/{species}_"+dict_sample+"_{sub}.gvcf.gz")
 	return genomicsdb_output_gvcfs
@@ -175,7 +174,7 @@ rule GenomicsDBimportSub:
 		get_samples_genomicsdb
 	output:
 		directory(config["gvcf_dir"]+"/{species}_{sub}_GenomicsDB")
-	threads: 1
+	threads: 4
 	resources:
 		mem_mb=GenomicsDBimportSub_mem_mb,
 		disk_mb=GenomicsDBimportSub_disk_mb,
@@ -209,8 +208,12 @@ rule GenomicsDBimportSub:
 			echo $in_gvzf | awk -F_ '{{print $2\"\\t\"$0}}' >> cohort.sample_map 
 		done
 		
-		$GATK4 GenomicsDBImport --genomicsdb-workspace-path GDB_database --batch-size 50 -L $sub_interval --sample-name-map cohort.sample_map --tmp-dir tmp --reader-threads 4 &>> {log}
-		cp -rf GDB_database {output}
+		$GATK4 GenomicsDBImport --genomicsdb-workspace-path GDB_database --batch-size 50 -L $sub_interval --sample-name-map cohort.sample_map --tmp-dir tmp --reader-threads {threads} --genomicsdb-shared-posixfs-optimizations true &>> {log}
+		#publish atomically: copy into a .tmp sibling (same filesystem as {output}) then rename, so an interrupted copy never leaves a partial DB at {output}
+		#rm any leftovers from an interrupted run first; cp -rf onto an existing dir would nest/corrupt it
+		rm -rf {output} {output}.tmp
+		cp -r GDB_database {output}.tmp
+		mv {output}.tmp {output}
 		"""
 
 #def get_intervals(wildcards):

@@ -7,7 +7,7 @@ def filter_bcftools_disk_mb(wildcards, attempt):
 	return int(config["filter_disk_mb"]+(config["filter_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def filter_bcftools_runtime(wildcards, attempt):
 	bcftools_runtime_seconds=parse_timespan(config["filter_runtime"])
-	return str(bcftools_runtime_seconds+int((bcftools_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(bcftools_runtime_seconds+int((bcftools_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 	#	filter_bcftools_runtime_cats=config["filter_runtime"].split(":")
 	#return str(int(filter_bcftools_runtime_cats[0])+int(int(filter_bcftools_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+filter_bcftools_runtime_cats[1]+":"+filter_bcftools_runtime_cats[2]
 
@@ -77,9 +77,9 @@ rule filter_bcftools_bisnp:
 
 			if [ {config[copy_large_vcfs]} -eq 1 ]
 			then
-				bcftools view --threads 1 -m3 -M3 -C 1:minor {wildcards.species}.merged.vcf.gz | python3 replace_minor.py | bgzip > {wildcards.species}.mvbiallelic.bt.vcf.gz
+				bcftools view --threads 1 -m3 -M3 -C 1:minor {wildcards.species}.merged.vcf.gz | python3 replace_minor.py | bgzip > {wildcards.species}.mvbiallelic.bt.vcf.gz || exit 1
 			else
-				bcftools view --threads 1 -m3 -M3 -C 1:minor {input.vcf_input} | python3 replace_minor.py | bgzip > {wildcards.species}.mvbiallelic.bt.vcf.gz
+				bcftools view --threads 1 -m3 -M3 -C 1:minor {input.vcf_input} | python3 replace_minor.py | bgzip > {wildcards.species}.mvbiallelic.bt.vcf.gz || exit 1
 
 			fi
 
@@ -92,10 +92,10 @@ rule filter_bcftools_bisnp:
 
 		if [ {config[copy_large_vcfs]} -eq 1 ]
 		then
-			bcftools view --threads 1 -m2 -M2 -v snps {wildcards.species}.merged.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic) | bgzip > {wildcards.species}.bisel.bt.vcf.gz 
+			bcftools view --threads 1 -m2 -M2 -v snps {wildcards.species}.merged.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic) | bgzip > {wildcards.species}.bisel.bt.vcf.gz || exit 1
 
 		else
-			bcftools view --threads 1 -m2 -M2 -v snps {input.vcf_input} | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic) | bgzip > {wildcards.species}.bisel.bt.vcf.gz 
+			bcftools view --threads 1 -m2 -M2 -v snps {input.vcf_input} | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.bisel --biallelic) | bgzip > {wildcards.species}.bisel.bt.vcf.gz || exit 1
 		fi
 
 		cp {wildcards.species}.bisel_table.tsv {output.vcf_stats_table_bisel}
@@ -111,7 +111,7 @@ rule filter_bcftools_bisnp:
 		cp {wildcards.species}.bisel.bt.vcf.gz.tbi {output.bisnp_sel_index} 
 		n_sites_bisel=$(grep $'biallelic\tgeneral\tsite_count' {wildcards.species}.bisel_table.tsv | cut -f 7 )
 
-		bcftools filter --threads 1 -m+ -s'MQ' -e'MQ<{config[MQ_less]}' {wildcards.species}.bisel.bt.vcf.gz | bcftools filter -m+ -s'QD' -e'QD<{config[QD_less]}' | bcftools filter -m+ -s'FS' -e'FS>{config[FS_more]}' | bcftools filter -m+ -s'MQRankSum' -e'MQRankSum<{config[MQRS_less]}' |  bcftools filter -m+ -s'ReadPosRankSum' -e'ReadPosRankSum<{config[RPRS_less]}' | bcftools filter -m+ -s'SOR' -e'SOR>{config[SOR_more]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bisel --histogram_bins 50 --output {wildcards.species}.bifilter --biallelic --plot_filter) | bgzip > {wildcards.species}.bifilter.bt.vcf.gz
+		bcftools filter --threads 1 -m+ -s'MQ' -e'MQ<{config[MQ_less]}' {wildcards.species}.bisel.bt.vcf.gz | bcftools filter -m+ -s'QD' -e'QD<{config[QD_less]}' | bcftools filter -m+ -s'FS' -e'FS>{config[FS_more]}' | bcftools filter -m+ -s'MQRankSum' -e'MQRankSum<{config[MQRS_less]}' |  bcftools filter -m+ -s'ReadPosRankSum' -e'ReadPosRankSum<{config[RPRS_less]}' | bcftools filter -m+ -s'SOR' -e'SOR>{config[SOR_more]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bisel --histogram_bins 50 --output {wildcards.species}.bifilter --biallelic --plot_filter) | bgzip > {wildcards.species}.bifilter.bt.vcf.gz || exit 1
 
 		cp {wildcards.species}.bifilter_table.tsv {output.vcf_stats_table_bifilter}
 		cp {wildcards.species}.bifilter_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic_bifilter}
@@ -124,7 +124,7 @@ rule filter_bcftools_bisnp:
 		tabix {wildcards.species}.bifilter.bt.vcf.gz
 		cp {wildcards.species}.bifilter.bt.vcf.gz.tbi {output.bisnp_filter_index} 
 
-		bcftools view -f.,PASS {wildcards.species}.bifilter.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bisel --histogram_bins 50 --output {wildcards.species}.bipassed --biallelic)  | bgzip > {wildcards.species}.bipassed.bt.vcf.gz
+		bcftools view -f.,PASS {wildcards.species}.bifilter.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bisel --histogram_bins 50 --output {wildcards.species}.bipassed --biallelic)  | bgzip > {wildcards.species}.bipassed.bt.vcf.gz || exit 1
 		cp {wildcards.species}.bipassed_table.tsv {output.vcf_stats_table_bipassed}
 		cp {wildcards.species}.bipassed_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic_bipassed}
 		cp {wildcards.species}.bipassed_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic_bipassed}
@@ -154,10 +154,8 @@ rule filter_bcftools_multivariants:
 		mem_mb=filter_bcftools_mem_mb,
 		disk_mb=filter_bcftools_disk_mb,
 		runtime=filter_bcftools_runtime
-	params:
-		bcftools_parse_script=workflow.source_path("../scripts/parse_bcftools_stdout.py")
 	log:
-		config["log_dir"]+"/filter_bisnp_bcftools_{species}.log"
+		config["log_dir"]+"/filter_multivariants_bcftools_{species}.log"
 	shell:
 		"""
 		temp_folder={config[temp_dir]}/filter_bcftools_multivariant_{wildcards.species}
@@ -168,7 +166,6 @@ rule filter_bcftools_multivariants:
 			source {config[cluster_code_dir]}/4_filter_bcftools.sh
 		fi
 		cd $temp_folder
-		cp {params.bcftools_parse_script} $temp_folder
 		if [ {config[copy_large_vcfs]} -eq 1 ]
 		then
 			cp {input} $temp_folder
@@ -232,9 +229,9 @@ rule filter_bcftools_invariants:
 		#TODO: test if this works!
 		if [ {config[filter_qual]} -eq 1 ]
 		then
-			bcftools view --threads 1 -C 0 {wildcards.species}.merged.vcf.gz | bcftools filter -m+ -s+ -e'QUAL<{config[invariantQUAL_less]} | QUAL=\".\"' | bcftools view -f.,PASS| bcftools filter --threads 1 -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . | bcftools view -i 'F_MISSING<{config[invariant_max_missing]}'| tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.novarpassed --invariants) | bgzip > {wildcards.species}.novarpassed.bt.vcf.gz
+			bcftools view --threads 1 -C 0 {wildcards.species}.merged.vcf.gz | bcftools filter -m+ -s+ -e'QUAL<{config[invariantQUAL_less]} | QUAL=\".\"' | bcftools view -f.,PASS| bcftools filter --threads 1 -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . | bcftools view -i 'F_MISSING<{config[invariant_max_missing]}'| tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.novarpassed --invariants) | bgzip > {wildcards.species}.novarpassed.bt.vcf.gz || exit 1
 		else
-			bcftools view --threads 1 -C 0 {wildcards.species}.merged.vcf.gz | bcftools filter -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . | bcftools view -i 'F_MISSING<{config[invariant_max_missing]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.novarpassed --invariants) | bgzip > {wildcards.species}.novarpassed.bt.vcf.gz
+			bcftools view --threads 1 -C 0 {wildcards.species}.merged.vcf.gz | bcftools filter -i 'FMT/DP>{config[invariant_min_depth]}' --set-GTs . | bcftools view -i 'F_MISSING<{config[invariant_max_missing]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites --histogram_bins 50 --output {wildcards.species}.novarpassed --invariants) | bgzip > {wildcards.species}.novarpassed.bt.vcf.gz || exit 1
 		fi
 		cp {wildcards.species}.novarpassed_table.tsv {output.vcf_stats_table_novarpassed}
 		cp {wildcards.species}.novarpassed_QUAL_invariant.pdf {output.vcf_stats_QUAL_invariant_novarpassed}
@@ -298,7 +295,7 @@ rule bcftools_filter_gt_snps:
 		awk '{{print$1\"\\t\"$2}}' {wildcards.species}.fasta.fai > ref.sizes
 
 		n_sites_bipassed=$(grep $'biallelic\tgeneral\tsite_count' {wildcards.species}.bipassed.merged.tsv | cut -f 7)
-		bcftools filter --threads 1 -i 'FMT/DP>{config[gen_min_depth]}' --set-GTs . {wildcards.species}.bipassed.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp --biallelic) | bgzip > {wildcards.species}.bigt.dp.bt.vcf.gz
+		bcftools filter --threads 1 -i 'FMT/DP>{config[gen_min_depth]}' --set-GTs . {wildcards.species}.bipassed.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp --biallelic) | bgzip > {wildcards.species}.bigt.dp.bt.vcf.gz || exit 1
 		cp {wildcards.species}.bigt_dp_table.tsv {output.vcf_stats_table_bigt_dp}
 		cp {wildcards.species}.bigt_dp_QUAL_biallelic.pdf {output.vcf_stats_QUAL_bigt_dp}
 		cp {wildcards.species}.bigt_dp_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_bigt_dp}
@@ -314,7 +311,7 @@ rule bcftools_filter_gt_snps:
 		bcftools view -h {wildcards.species}.bigt.dp.bt.vcf.gz > {wildcards.species}.bigt.dp.bt.header
 		sed -i s/ID=PL,Number=G/ID=PL,Number=./g {wildcards.species}.bigt.dp.bt.header
 		bcftools reheader -h {wildcards.species}.bigt.dp.bt.header -o {wildcards.species}.bigt.dp.bt.rh.vcf.gz {wildcards.species}.bigt.dp.bt.vcf.gz
-		bcftools +fill-AN-AC {wildcards.species}.bigt.dp.bt.rh.vcf.gz | bcftools view -a | bcftools view -m2 -v snps -i 'F_MISSING<{config[gen_max_missing]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp_m --biallelic) | bgzip > {wildcards.species}.bigt.dp.m.bt.vcf.gz 
+		bcftools +fill-AN-AC {wildcards.species}.bigt.dp.bt.rh.vcf.gz | bcftools view -a | bcftools view -m2 -v snps -i 'F_MISSING<{config[gen_max_missing]}' | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_bipassed --histogram_bins 50 --output {wildcards.species}.bigt_dp_m --biallelic) | bgzip > {wildcards.species}.bigt.dp.m.bt.vcf.gz || exit 1
 		cp {wildcards.species}.bigt_dp_m_table.tsv {output.vcf_stats_table_bigt_dp_m}
 		cp {wildcards.species}.bigt_dp_m_QUAL_biallelic.pdf {output.vcf_stats_QUAL_bigt_dp_m}
 		cp {wildcards.species}.bigt_dp_m_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_bigt_dp_m}
@@ -429,7 +426,7 @@ rule bcftools_mask:
 		n_sites_invariant=$(grep $'invariant\tgeneral\tsite_count' {wildcards.species}.novarpassed.merged.tsv | cut -f 7)
 		n_sites_total=$((n_sites_bigt+n_sites_invariant))
 		#bedtools complement -i exclude.bed -g ref.sizes > include.bed
-		bcftools filter --threads 1 -M exclude.bed -s MASK {wildcards.species}.merged.bt.vcf.gz | bcftools view -f .,PASS | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_total --histogram_bins 50 --output {wildcards.species}.mask --biallelic --invariants) | bgzip > {wildcards.species}.merged.masked.bt.vcf.gz 
+		bcftools filter --threads 1 -M exclude.bed -s MASK {wildcards.species}.merged.bt.vcf.gz | bcftools view -f .,PASS | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_total --histogram_bins 50 --output {wildcards.species}.mask --biallelic --invariants) | bgzip > {wildcards.species}.merged.masked.bt.vcf.gz || exit 1
 		
 
 		cp {wildcards.species}.mask_table.tsv {output.vcf_stats_table_mask}
@@ -462,7 +459,7 @@ rule bcftools_filter_fourfold:
 	output:
 		fourfold=config["vcf_filtered"]+"/{species}.fourfold.bt.vcf.gz",
 		fourfold_index=config["vcf_filtered"]+"/{species}.fourfold.bt.vcf.gz.tbi",
-		vcf_stats_table_fourfold=config["report_dir"]+"/filterbigt/{species}.bigt.dp.m.merged.tsv",
+		vcf_stats_table_fourfold=config["report_dir"]+"/fourfold/{species}.fourfold.merged.tsv",
 		vcf_stats_QUAL_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_bigt_fourfold_QUAL.pdf", category="fourfold", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_QUAL_categories_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_bigt_fourfold_QUAL_categories.pdf", category="fourfold", subcategory="general", labels={"variant type":"biallelic", "statistic":"QUAL_categories", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
 		vcf_stats_INFO_bigt_fourfold=report(config["report_dir"]+"/fourfold/{species}_bigt_fourfold_INFO.pdf", category="fourfold", subcategory="INFO", labels={"variant type":"biallelic", "statistic":"INFO", "filter":"MQ<%s, QD<%s, FS>%s, MQRankSum<%s, ReadPosRankSum<%s, SOR>%s, GT DP>%s, MaxMissing=%s, fourfold" % (config["MQ_less"],config["QD_less"], config["FS_more"], config["MQRS_less"], config["RPRS_less"], config["SOR_more"], config["gen_min_depth"], config["gen_max_missing"])}),
@@ -501,7 +498,7 @@ rule bcftools_filter_fourfold:
 		n_sites_inv=$(grep $'invariant\tgeneral\tsite_count' {wildcards.species}.bigt.merged.bt.tsv | cut -f 7)
 		n_sites_total=$((n_sites_bi+n_sites_inv))
 		fourfold_sites=$(awk -F/ '{{print $NF}}' <<< {input.fourfold_sites})
-		bcftools view --threads 1 -R $fourfold_sites {wildcards.species}.merged.masked.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_total --histogram_bins 50 --output {wildcards.species}.fourfold --biallelic --invariants) | bgzip >{wildcards.species}.fourfold.bt.vcf.gz 
+		bcftools view --threads 1 -R $fourfold_sites {wildcards.species}.merged.masked.bt.vcf.gz | tee >(python3 parse_bcftools_stdout.py --n_sites $n_sites_total --histogram_bins 50 --output {wildcards.species}.fourfold --biallelic --invariants) | bgzip >{wildcards.species}.fourfold.bt.vcf.gz || exit 1
 		cp {wildcards.species}.fourfold_table.tsv {output.vcf_stats_table_fourfold}
 		cp {wildcards.species}.fourfold_QUAL_biallelic.pdf {output.vcf_stats_QUAL_bigt_fourfold}
 		cp {wildcards.species}.fourfold_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_bigt_fourfold}
@@ -526,7 +523,7 @@ def make_depth_mask_disk_mb_bt(wildcards, attempt):
 	return int(config["make_depth_mask_disk_mb"]+(config["make_depth_mask_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def make_depth_mask_runtime_bt(wildcards, attempt):
 	make_depth_mask_runtime_seconds=parse_timespan(config["make_depth_mask_runtime"])
-	return str(make_depth_mask_runtime_seconds+int((make_depth_mask_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(make_depth_mask_runtime_seconds+int((make_depth_mask_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #make_depth_mask_runtime_cats=config["make_depth_mask_runtime"].split(":")
 #	return str(int(make_depth_mask_runtime_cats[0])+int(int(make_depth_mask_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+make_depth_mask_runtime_cats[1]+":"+make_depth_mask_runtime_cats[2]
 #make depth mask->check manually if it makes sense

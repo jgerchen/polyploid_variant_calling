@@ -8,7 +8,7 @@ def GenotypeGenomicsDBSub_disk_mb(wildcards, attempt):
 	return int(config["GenotypeGenomicsDBSub_disk_mb"]+(config["GenotypeGenomicsDBSub_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def GenotypeGenomicsDBSub_runtime(wildcards, attempt):
 	GenotypeGenomicsDBSub_runtime_seconds=parse_timespan(config["GenotypeGenomicsDBSub_runtime"])
-	return str(GenotypeGenomicsDBSub_runtime_seconds+int((GenotypeGenomicsDBSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(GenotypeGenomicsDBSub_runtime_seconds+int((GenotypeGenomicsDBSub_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 	#	GenotypeGenomicsDBSub_runtime_cats=config["GenotypeGenomicsDBSub_runtime"].split(":")
 #	return str(int(GenotypeGenomicsDBSub_runtime_cats[0])+int(int(GenotypeGenomicsDBSub_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+GenotypeGenomicsDBSub_runtime_cats[1]+":"+GenotypeGenomicsDBSub_runtime_cats[2]
 rule GenotypeGenomicsDBSub:
@@ -51,11 +51,13 @@ rule GenotypeGenomicsDBSub:
 		fi
 		if [ {config[GATK_GenotypeGVCF_ignore_crash]} -eq 1  ]
 		then
-			! $GATK4 --java-options \"-Xmx{resources[mem_mb]}m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
+			! $GATK4 --java-options \"-Xmx$(( {resources[mem_mb]}-2000 > 1024 ? {resources[mem_mb]}-2000 : 1024 ))m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
 		else
-			$GATK4 --java-options \"-Xmx{resources[mem_mb]}m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
+			$GATK4 --java-options \"-Xmx$(( {resources[mem_mb]}-2000 > 1024 ? {resources[mem_mb]}-2000 : 1024 ))m\" GenotypeGVCFs  -R {wildcards.species}.fasta -V gendb://{wildcards.species}_{wildcards.sub}_GenomicsDB -L $sub_interval -O {wildcards.species}_{wildcards.sub}.vcf.gz --tmp-dir tmp --include-non-variant-sites  &>> {log}
 		fi
-		cp {wildcards.species}_{wildcards.sub}.vcf.gz {output} 
+		#GATK may exit non-zero yet still have written a complete VCF (tolerated when ignore_crash=1), but a truncated VCF must not reach the merge: fail unless it decompresses cleanly
+		zcat {wildcards.species}_{wildcards.sub}.vcf.gz > /dev/null 2>> {log} || exit 1
+		cp {wildcards.species}_{wildcards.sub}.vcf.gz {output}
 		"""
 
 
@@ -65,7 +67,7 @@ def get_subVCF_stats_disk_mb(wildcards, attempt):
 	return int(config["subVCF_stats_disk_mb"]+(config["subVCF_stats_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def get_subVCF_stats_runtime(wildcards, attempt):
 	subVCF_stats_runtime_seconds=parse_timespan(config["subVCF_stats_runtime"])
-	return str(subVCF_stats_runtime_seconds+int((subVCF_stats_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(subVCF_stats_runtime_seconds+int((subVCF_stats_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 
 rule get_subVCF_stats:
 	input:
@@ -104,7 +106,7 @@ def MergeSubVCFsbcftools_disk_mb(wildcards, attempt):
 	return int(config["MergeSubVCFsbcftools_disk_mb"]+(config["MergeSubVCFsbcftools_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def MergeSubVCFsbcftools_runtime(wildcards, attempt):
 	MergeSubVCFsbcftools_runtime_seconds=parse_timespan(config["MergeSubVCFsbcftools_runtime"])
-	return str(MergeSubVCFsbcftools_runtime_seconds+int((MergeSubVCFsbcftools_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(MergeSubVCFsbcftools_runtime_seconds+int((MergeSubVCFsbcftools_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #MergeSubVCFsbcftools_runtime_cats=config["MergeSubVCFsbcftools_runtime"].split(":")
 #	return str(int(MergeSubVCFsbcftools_runtime_cats[0])+int(int(MergeSubVCFsbcftools_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+MergeSubVCFsbcftools_runtime_cats[1]+":"+MergeSubVCFsbcftools_runtime_cats[2]
 rule MergeSubVCFsbcftools:
@@ -156,16 +158,16 @@ rule MergeSubVCFsbcftools:
 		cp {input} $temp_folder
 		cp {params.combine_stat_pickles} $temp_folder
 		cd $temp_folder
-		sub_intervals=$(awk -F/ '{{print $NF}}' <<< {input.sub_interval_list})
-		#TODO: does this actually work??? No it doesn't! Fix it...
-		awk '{{print "{wildcards.species}_"$1".vcf.gz"}}' $sub_intervals > input_files.list
-		awk '{{print "{wildcards.species}_"$1".vcfstats.pickle"}}' $sub_intervals > input_pickles.list
+		#build lists from the actual inputs (in interval_list order); re-parsing sub_intervals broke on blank lines
+		for f in {input.out_vcf}; do basename "$f"; done > input_files.list
+		for f in {input.vcf_stats_pickles}; do basename "$f"; done > input_pickles.list
 		bcftools concat -f input_files.list -n -o {wildcards.species}.merged.bt.vcf.gz
-		cp {wildcards.species}.merged.bt.vcf.gz {output.vcf_out}
-		tabix {wildcards.species}.merged.bt.vcf.gz 
+		#publish atomically (.tmp sibling then rename); this VCF is read in place by stage 4 when copy_large_vcfs=0, so a truncated copy would poison all downstream filtering
+		cp {wildcards.species}.merged.bt.vcf.gz {output.vcf_out}.tmp && mv {output.vcf_out}.tmp {output.vcf_out}
+		tabix {wildcards.species}.merged.bt.vcf.gz
 
 		python3 combine_parse_bcftools_pickles.py --histogram_bins 50 --output {wildcards.species} --biallelic --invariants --multiallelic --pickle_list input_pickles.list
-		cp {wildcards.species}.merged.bt.vcf.gz.tbi {output.vcf_out_index}
+		cp {wildcards.species}.merged.bt.vcf.gz.tbi {output.vcf_out_index}.tmp && mv {output.vcf_out_index}.tmp {output.vcf_out_index}
 		cp {wildcards.species}_table.tsv {output.vcf_stats_table}
 		cp {wildcards.species}_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic}
 		cp {wildcards.species}_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic}

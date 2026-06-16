@@ -6,7 +6,7 @@ def filter_gatk_disk_mb(wildcards, attempt):
 	return int(config["filter_disk_mb"]+(config["filter_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def filter_gatk_runtime(wildcards, attempt):
 	filter_gatk_runtime_seconds=parse_timespan(config["filter_runtime"])
-	return str(filter_gatk_runtime_seconds+int((filter_gatk_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(filter_gatk_runtime_seconds+int((filter_gatk_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #filter_gatk_runtime_cats=config["filter_runtime"].split(":")
 #	return str(int(filter_gatk_runtime_cats[0])+int(int(filter_gatk_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+filter_gatk_runtime_cats[1]+":"+filter_gatk_runtime_cats[2]
 #rule MergeSubVCFs:
@@ -181,7 +181,7 @@ rule GATK_mask:
 		ref_fasta_dict=config["fasta_dir"]+"/{species}.dict"
 	output:
 		merged_filtered=config["vcf_filtered"]+"/{species}.merged.filtered.vcf.gz",
-		merged_filtered_index=config["vcf_filtered"]+"/{species}.mergedfiltered.vcf.gz.tbi"
+		merged_filtered_index=config["vcf_filtered"]+"/{species}.merged.filtered.vcf.gz.tbi"
 	threads: 1
 	resources:
 		mem_mb=filter_gatk_mem_mb,
@@ -315,7 +315,7 @@ rule GATK_filter_gt_fourfold:
 		fi
 		cp {input} $temp_folder
 		cd $temp_folder
-		fourfold=$(awk -F/ '{{print $NF}}' <<< {input.fourfold})
+		fourfold=$(awk -F/ '{{print $NF}}' <<< {input.fourfold_sites})
 		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.merged.filtered.vcf.gz -O {wildcards.species}.fourfold.filtered.vcf.gz -L $fourfold &>> {log}
 		cp {wildcards.species}.fourfold.filtered.vcf.gz {output.fourfold_filtered} 
 		$GATK4 IndexFeatureFile -I {wildcards.species}.fourfold.filtered.vcf.gz &>> {log}
@@ -324,7 +324,7 @@ rule GATK_filter_gt_fourfold:
 		if [ {config[hetmask]} != "None" ]
 		then
 			hetmask=$(awk -F/ '{{print $NF}}' <<< {input.hetmask})
-			$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bipassed.vcf.gz -O {wildcards.species}.bipassed.filtered.vcf.gz -XL $depthmask -XL $hetmask -L $fourfold &>> {log}
+			$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bipassed.vcf.gz -O {wildcards.species}.bi.fourfold.filtered.vcf.gz -XL $depthmask -XL $hetmask -L $fourfold &>> {log}
 		else
 			$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bipassed.vcf.gz -O {wildcards.species}.bi.fourfold.filtered.vcf.gz -XL $depthmask -L $fourfold &>> {log}
 		fi
@@ -332,23 +332,23 @@ rule GATK_filter_gt_fourfold:
 		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bi.fourfold.filtered.vcf.gz -O {wildcards.species}.bi.fourfold.dp.vcf.gz --genotype-filter-expression \"DP < {config[gen_min_depth]}\" --genotype-filter-name \"DP\" &>> {log}
 		cp {wildcards.species}.bi.fourfold.dp.vcf.gz {output.fourfold_bi_dp}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bi.fourfold.dp.vcf.gz &>> {log}
-		cp {wildcards.species}.bipassed.dp.vcf.gz.tbi {output.fourfold_bi_dp_index}
+		cp {wildcards.species}.bi.fourfold.dp.vcf.gz.tbi {output.fourfold_bi_dp_index}
 		$GATK4 VariantFiltration -R {wildcards.species}.fasta -V {wildcards.species}.bi.fourfold.dp.vcf.gz -O {wildcards.species}.bi.fourfold.dpnc.vcf.gz --set-filtered-genotype-to-no-call &>> {log}
 		cp {wildcards.species}.bi.fourfold.dpnc.vcf.gz {output.fourfold_bi_dp_nc}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bi.fourfold.dpnc.vcf.gz &>> {log}
-		cp {wildcards.species}.bi.fourfold.dpnc.vcf.gz.tbi {config.bisnp_passed_dp_nc_index}
+		cp {wildcards.species}.bi.fourfold.dpnc.vcf.gz.tbi {output.fourfold_bi_dp_nc_index}
 		$GATK4 SelectVariants -R {wildcards.species}.fasta -V {wildcards.species}.bi.fourfold.dpnc.vcf.gz  -O  {wildcards.species}.bi.fourfold.dpncm.vcf.gz --max-nocall-fraction {config[gen_max_missing]}  &>> {log}
 		cp {wildcards.species}.bi.fourfold.dpncm.vcf.gz {output.fourfold_bi_dp_nc_m}
 		$GATK4 IndexFeatureFile -I {wildcards.species}.bi.fourfold.dpncm.vcf.gz &>> {log}
-		cp {wildcards.species}.bi.fourfold.dpncm.vcf.gz.tbi {config.bisnp_passed_dp_nc_m_index}
+		cp {wildcards.species}.bi.fourfold.dpncm.vcf.gz.tbi {output.fourfold_bi_dp_nc_m_index}
 		"""
 def make_depth_mask_mem_mb(wildcards, attempt):
 	return int(config["make_depth_mask_mem_mb"]+(config["make_depth_mask_mem_mb"]*(attempt-1)*config["repeat_mem_mb_factor"]))
 def make_depth_mask_disk_mb(wildcards, attempt):
 	return int(config["make_depth_mask_disk_mb"]+(config["make_depth_mask_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def make_depth_mask_runtime(wildcards, attempt):
-	make_depth_mask_runtime_seconds=parse_timespan(config["filter_runtime"])
-	return str(make_depth_mask_runtime_seconds+int((make_depth_mask_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	make_depth_mask_runtime_seconds=parse_timespan(config["make_depth_mask_runtime"])
+	return str(int(make_depth_mask_runtime_seconds+int((make_depth_mask_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #make_depth_mask_runtime_cats=config["make_depth_mask_runtime"].split(":")
 #	return str(int(make_depth_mask_runtime_cats[0])+int(int(make_depth_mask_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+make_depth_mask_runtime_cats[1]+":"+make_depth_mask_runtime_cats[2]
 #make depth mask->check manually if it makes sense
@@ -365,6 +365,8 @@ rule make_depth_mask:
 		mem_mb=make_depth_mask_mem_mb,
 		disk_mb=make_depth_mask_disk_mb,
 		runtime=make_depth_mask_runtime
+	params:
+		depth_mask_script=workflow.source_path("../scripts/make_depth_mask.py")
 	log:
 		config["log_dir"]+"/make_depth_mask_{species}.log"
 	shell:
@@ -377,7 +379,7 @@ rule make_depth_mask:
 			source {config[cluster_code_dir]}/4_filter_GATK.sh
 		fi
 		cp {input} $temp_folder
-		cp scripts/make_depth_mask.py $temp_folder
+		cp {params.depth_mask_script} $temp_folder
 		cd $temp_folder
 		n_loci=$(zcat {wildcards.species}.merged.vcf.gz | grep -c \"^[^#]\")
 		python3 make_depth_mask.py -v {wildcards.species}.merged.vcf.gz -o out_file.tsv -c counts_out.tsv -p hist_out.tsv -n {config[depthmask_n]} -l $n_loci

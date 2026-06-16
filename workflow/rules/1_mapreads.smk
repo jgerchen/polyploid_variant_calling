@@ -32,13 +32,17 @@ checkpoint get_sample_reads:
 		import re
 		pe_strings=[read_i.split(":") for read_i in config["paired_end_res"].split(",")]
 
+		#validate every sample, collecting all problems so they are all reported in one run instead of failing on the first; only write the output once every sample is valid, never a partial sample_read_file
+		rows=[]
+		sample_errors=[]
 		with open(input.sample_list) as sample_list:
-			with open(output.sample_read_file, "w") as s_read_out:
-				for line in sample_list:
-					if len(line.strip())>0:
-						sample_cats=line.strip().split()
-						assert len(sample_cats)==4, "The sample list must have 4 columns (sample name,file name(s), adapter file and ploidy), but here it's %s" % len(sample_cats)
-						assert "_" not in sample_cats[0], "Sample names must not contain underscores! Remove the underscore in sample name %s and try again" % sample_cats[0]
+			for line in sample_list:
+				if len(line.strip())>0:
+					sample_cats=line.strip().split()
+					sample_name=sample_cats[0]
+					try:
+						assert len(sample_cats)==4, "the sample list must have 4 columns (sample name, file name(s), adapter file and ploidy), but this row has %s" % len(sample_cats)
+						assert "_" not in sample_name, "sample names must not contain underscores"
 						sample_libs=[]
 						for s_cat_multiple in sample_cats[1].split(","):
 							if type(config["fastq_dir"])==str:
@@ -50,7 +54,7 @@ checkpoint get_sample_reads:
 									sample_glob=glob.glob(fastq_dir+"/**/*"+s_cat_multiple+"*.f*q*", recursive=True)
 									if len(sample_glob)>0:
 										sample_libs=list(set(sample_libs).union(set(sample_glob)))
-						assert len(sample_libs)>=2, "There have to be at least 2 libraries per sample, however sample %s only has %s." % (sample_cats[0], len(sample_libs))
+						assert len(sample_libs)>=2, "there have to be at least 2 libraries per sample, however only %s were found" % len(sample_libs)
 						#get list of wildcard pairs
 						for pe_re in pe_strings:
 							#1. match re1
@@ -60,9 +64,14 @@ checkpoint get_sample_reads:
 							r2_re=re.compile(pe_re[1])
 							samples_r2=sorted(list(filter(r2_re.match, sample_libs)))
 							#ensure the length of both matches is the same
-							assert len(samples_r1)==len(samples_r2), "Regular expressions for forward and reverse reads have to match the same number of times, but for sample %s RE %s matches %s times but RE %s matches %s times." % (sample_cats[0], pe_re[0], len(samples_r1), pe_re[1], len(samples_r2))
+							assert len(samples_r1)==len(samples_r2), "forward read RE %s matches %s files but reverse read RE %s matches %s" % (pe_re[0], len(samples_r1), pe_re[1], len(samples_r2))
 							for re_pair_i in range(len(samples_r1)):
-								s_read_out.write("%s\t%s\t%s\t%s\t%s\t%s\n" % (sample_cats[0], re_pair_i, samples_r1[re_pair_i], samples_r2[re_pair_i], config["adapter_dir"]+"/"+sample_cats[2], sample_cats[3]))
+								rows.append("%s\t%s\t%s\t%s\t%s\t%s\n" % (sample_name, re_pair_i, samples_r1[re_pair_i], samples_r2[re_pair_i], config["adapter_dir"]+"/"+sample_cats[2], sample_cats[3]))
+					except AssertionError as e:
+						sample_errors.append("sample %s: %s" % (sample_name, e))
+		assert not sample_errors, "Problems in %s:\n%s" % (input.sample_list, "\n".join(sample_errors))
+		with open(output.sample_read_file, "w") as s_read_out:
+			s_read_out.writelines(rows)
 
 
 def get_fwd_reads(wildcards):
@@ -108,7 +117,7 @@ def trimmomatic_disk_mb(wildcards, attempt):
 	return int(config["trimmomatic_disk_mb"]+(config["trimmomatic_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def trimmomatic_runtime(wildcards, attempt):
 	trimmomatic_runtime_seconds=parse_timespan(config["trimmomatic_runtime"])
-	return str(trimmomatic_runtime_seconds+int((trimmomatic_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(trimmomatic_runtime_seconds+int((trimmomatic_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 	#trimmomatic_runtime_cats=config["trimmomatic_runtime"].split(":")
 	#return str(int(trimmomatic_runtime_cats[0])+int(int(trimmomatic_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+trimmomatic_runtime_cats[1]+":"+trimmomatic_runtime_cats[2]
 
@@ -126,14 +135,14 @@ rule trimmomatic:
 		pre_fwd_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_fwd.zip" if config["run_fastqc"]==1 else [],
 		pre_rev=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_rev.html", category="trimmomatic", subcategory="fastQC before trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2"}) if config["run_fastqc"]==1 else [],
 		pre_rev_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/pre_rev.zip" if config["run_fastqc"]==1 else [],
-		post_fwd_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Yes"}) if config["run_fastqc"]==True else [],
-		post_fwd_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.zip" if config["run_fastqc"]==True else [],
-		post_rev_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Yes"}) if config["run_fastqc"]==True else [],
-		post_rev_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.zip" if config["run_fastqc"]==True else [],
-		post_fwd_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Singleton"}) if config["run_fastqc"]==True else [],
-		post_fwd_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.zip" if config["run_fastqc"]==True else [],
-		post_rev_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Singleton"}) if config["run_fastqc"]==True else [],
-		post_rev_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.zip" if config["run_fastqc"]==True else []
+		post_fwd_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Yes"}) if config["run_fastqc"]==1 else [],
+		post_fwd_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_paired.zip" if config["run_fastqc"]==1 else [],
+		post_rev_paired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Yes"}) if config["run_fastqc"]==1 else [],
+		post_rev_paired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_paired.zip" if config["run_fastqc"]==1 else [],
+		post_fwd_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R1", "paired":"Singleton"}) if config["run_fastqc"]==1 else [],
+		post_fwd_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_fwd_unpaired.zip" if config["run_fastqc"]==1 else [],
+		post_rev_unpaired=report(config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.html", category="trimmomatic", subcategory="fastQC after trimming", labels={"sample":"{sample}", "library":"{lib}", "read-pair":"R2", "paired":"Singleton"}) if config["run_fastqc"]==1 else [],
+		post_rev_unpaired_zip=config["report_dir"]+"/trimmomatic/fastQC_{sample}_{lib}/post_rev_unpaired.zip" if config["run_fastqc"]==1 else []
 
 	threads: 4
 	resources:
@@ -196,7 +205,7 @@ def map_reads_disk_mb(wildcards, attempt):
 	return int(config["map_reads_disk_mb"]+(config["map_reads_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def map_reads_runtime(wildcards, attempt):
 	map_reads_runtime_seconds=parse_timespan(config["map_reads_runtime"])
-	return str(map_reads_runtime_seconds+int((map_reads_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(map_reads_runtime_seconds+int((map_reads_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 	#	map_reads_runtime_cats=config["map_reads_runtime"].split(":")
 	#return str(int(map_reads_runtime_cats[0])+int(int(map_reads_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+map_reads_runtime_cats[1]+":"+map_reads_runtime_cats[2]
 rule map_reads:
@@ -236,13 +245,13 @@ rule map_reads:
 		cd $temp_folder
 		fwd_reads=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads_trimmed})
 		rev_reads=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads_trimmed})
-		bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta  $fwd_reads $rev_reads | samtools sort - | samtools view -bh -o aligned_pe.bam &>> {log}
+		bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta  $fwd_reads $rev_reads | samtools sort -@ {threads} -T sort_pe - | samtools view -bh -o aligned_pe.bam &>> {log} || exit 1
 		if [ {config[trim_reads]} -eq 1 ]
 		then
 			fwd_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.fwd_reads_unpaired})
 			rev_reads_unp=$(awk -F/ '{{print $NF}}' <<< {input.rev_reads_unpaired})
-			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $fwd_reads_unp | samtools sort - | samtools view -bh -o aligned_fwd_unp.bam &>> {log}
-			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $rev_reads_unp | samtools sort - | samtools view -bh -o aligned_rev_unp.bam &>> {log}
+			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $fwd_reads_unp | samtools sort -@ {threads} -T sort_fwd - | samtools view -bh -o aligned_fwd_unp.bam &>> {log} || exit 1
+			bwa mem -t {threads} -R '@RG\\tID:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tLB:{wildcards.species}_{wildcards.sample}_{wildcards.lib}\\tSM:{wildcards.species}_{wildcards.sample}\\tPL:illumina' {wildcards.species}.fasta $rev_reads_unp | samtools sort -@ {threads} -T sort_rev - | samtools view -bh -o aligned_rev_unp.bam &>> {log} || exit 1
 			samtools merge aligned_merged.bam aligned_pe.bam aligned_fwd_unp.bam aligned_rev_unp.bam
 		else
 			mv aligned_pe.bam aligned_merged.bam
@@ -262,7 +271,7 @@ def merge_bams_disk_mb(wildcards, attempt):
 	return int(config["merge_bams_disk_mb"]+(config["merge_bams_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def merge_bams_runtime(wildcards, attempt):
 	merge_bams_runtime_seconds=parse_timespan(config["merge_bams_runtime"])
-	return str(merge_bams_runtime_seconds+int((merge_bams_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(merge_bams_runtime_seconds+int((merge_bams_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 #merge_bams_runtime_cats=config["merge_bams_runtime"].split(":")
 #	return str(int(merge_bams_runtime_cats[0])+int(int(merge_bams_runtime_cats[0])*(attempt-1)*config["repeat_runtime_factor"]))+":"+merge_bams_runtime_cats[1]+":"+merge_bams_runtime_cats[2]
 rule merge_bams_deduplicate:
@@ -315,7 +324,7 @@ rule merge_bams_deduplicate:
 		limit=$(echo `ulimit -n` - 50 | bc)
 		mkdir tmp
 		#java -jar -XX:ParallelGCThreads=2 -Xmx12g $PICARD MarkDuplicates I=all_merged.bam O=all_merged.dedup.bam MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=$limit M=dup_metrics.log ASSUME_SORTED=true TAGGING_POLICY=All &>>{log}
-		picard MarkDuplicates -Djava.io.tmpdir=tmp -Xmx{resources[mem_mb]}m I=all_merged.bam O=all_merged.dedup.bam MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=$limit M=dup_metrics.log ASSUME_SORTED=true TAGGING_POLICY=All TMP_DIR=tmp &>>{log}
+		picard MarkDuplicates -Djava.io.tmpdir=tmp -Xmx$(( {resources[mem_mb]}-2000 > 1024 ? {resources[mem_mb]}-2000 : 1024 ))m I=all_merged.bam O=all_merged.dedup.bam MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=$limit M=dup_metrics.log ASSUME_SORTED=true TAGGING_POLICY=All TMP_DIR=tmp &>>{log}
 		samtools index all_merged.dedup.bam &>>{log}
 		cat dup_metrics.log >> {log}
 		samtools flagstat all_merged.dedup.bam -O tsv > all_merged.flagstat.tsv
@@ -355,7 +364,7 @@ def bam_depth_disk_mb(wildcards, attempt):
 	return int(config["bam_depth_disk_mb"]+(config["bam_depth_disk_mb"]*(attempt-1)*config["repeat_disk_mb_factor"]))
 def bam_depth_runtime(wildcards, attempt):
 	bam_depth_runtime_seconds=parse_timespan(config["bam_depth_runtime"])
-	return str(bam_depth_runtime_seconds+int((bam_depth_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"]))+"s"
+	return str(int(bam_depth_runtime_seconds+int((bam_depth_runtime_seconds*(attempt-1))*config["repeat_runtime_factor"])))+"s"
 
 
 rule bam_depth:
@@ -397,15 +406,14 @@ def get_samples_bam_stats(wildcards):
 	#bam_stats_output_dict={"stats_depth_contig":[], "stats_depth_contig_clean":[], "stats_flagstat":[]}
 	bam_stats_output_dict={"stats_depth_contig":[], "stats_depth_contig_clean":[], "stats_flagstat":[]}
 	with checkpoints.get_sample_reads.get(species=wildcards.species).output[0].open() as f:
-		#TODO: check if dictionary is already populated, then there's no need to read the file again!
-		if len(sample_dict)==0:
-			for sample_line in f:
-				samp_cats=sample_line.strip().split()
-				if samp_cats[0] not in sample_dict:
-					sample_dict.update({samp_cats[0]:({samp_cats[1]:(samp_cats[2], samp_cats[3])},samp_cats[4],samp_cats[5])})
-				else:
-					if samp_cats[1] not in sample_dict[samp_cats[0]][0]:
-						sample_dict[samp_cats[0]][0].update({samp_cats[1]:(samp_cats[2], samp_cats[3])})
+		#always re-read: guarding on len(sample_dict)==0 silently drops samples added since a stale parse-time read
+		for sample_line in f:
+			samp_cats=sample_line.strip().split()
+			if samp_cats[0] not in sample_dict:
+				sample_dict.update({samp_cats[0]:({samp_cats[1]:(samp_cats[2], samp_cats[3])},samp_cats[4],samp_cats[5])})
+			else:
+				if samp_cats[1] not in sample_dict[samp_cats[0]][0]:
+					sample_dict[samp_cats[0]][0].update({samp_cats[1]:(samp_cats[2], samp_cats[3])})
 		for dict_sample in sample_dict:
 			bam_stats_output_dict["stats_depth_contig"].append(config["report_dir"]+"/bam_depth/{species}_"+dict_sample+".chr.stat.gz")
 			bam_stats_output_dict["stats_depth_contig_clean"].append(config["report_dir"]+"/bam_depth/{species}_"+dict_sample+".chr.clean.stat.gz")
