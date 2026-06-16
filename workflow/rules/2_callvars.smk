@@ -209,9 +209,11 @@ rule GenomicsDBimportSub:
 		done
 		
 		$GATK4 GenomicsDBImport --genomicsdb-workspace-path GDB_database --batch-size 50 -L $sub_interval --sample-name-map cohort.sample_map --tmp-dir tmp --reader-threads {threads} --genomicsdb-shared-posixfs-optimizations true &>> {log}
-		#rm partial DB from an interrupted run first; cp -rf onto an existing dir would nest/corrupt it
-		rm -rf {output}
-		cp -r GDB_database {output}
+		#publish atomically: copy into a .tmp sibling (same filesystem as {output}) then rename, so an interrupted copy never leaves a partial DB at {output}
+		#rm any leftovers from an interrupted run first; cp -rf onto an existing dir would nest/corrupt it
+		rm -rf {output} {output}.tmp
+		cp -r GDB_database {output}.tmp
+		mv {output}.tmp {output}
 		"""
 
 #def get_intervals(wildcards):

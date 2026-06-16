@@ -161,11 +161,12 @@ rule MergeSubVCFsbcftools:
 		awk '{{print "{wildcards.species}_"$1".vcf.gz"}}' $sub_intervals > input_files.list
 		awk '{{print "{wildcards.species}_"$1".vcfstats.pickle"}}' $sub_intervals > input_pickles.list
 		bcftools concat -f input_files.list -n -o {wildcards.species}.merged.bt.vcf.gz
-		cp {wildcards.species}.merged.bt.vcf.gz {output.vcf_out}
-		tabix {wildcards.species}.merged.bt.vcf.gz 
+		#publish atomically (.tmp sibling then rename); this VCF is read in place by stage 4 when copy_large_vcfs=0, so a truncated copy would poison all downstream filtering
+		cp {wildcards.species}.merged.bt.vcf.gz {output.vcf_out}.tmp && mv {output.vcf_out}.tmp {output.vcf_out}
+		tabix {wildcards.species}.merged.bt.vcf.gz
 
 		python3 combine_parse_bcftools_pickles.py --histogram_bins 50 --output {wildcards.species} --biallelic --invariants --multiallelic --pickle_list input_pickles.list
-		cp {wildcards.species}.merged.bt.vcf.gz.tbi {output.vcf_out_index}
+		cp {wildcards.species}.merged.bt.vcf.gz.tbi {output.vcf_out_index}.tmp && mv {output.vcf_out_index}.tmp {output.vcf_out_index}
 		cp {wildcards.species}_table.tsv {output.vcf_stats_table}
 		cp {wildcards.species}_QUAL_biallelic.pdf {output.vcf_stats_QUAL_biallelic}
 		cp {wildcards.species}_QUAL_categories_biallelic.pdf {output.vcf_stats_QUAL_categories_biallelic}
